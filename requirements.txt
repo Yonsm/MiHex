@@ -1,0 +1,17 @@
+# MiHex Dependencies — Python 3.8+
+# Install: pip3 install --no-cache-dir --no-compile -r requirements.txt
+
+# Core
+pyyaml>=6.0,<7.0
+
+# MiIO device control
+miservice>=2.0,<4.0
+
+# MQTT communication
+paho-mqtt>=2.0,<3.0
+
+# Broadlink IR/RF (cryptography must be installed via opkg as a pre-built package)
+# broadlink>=0.18,<1.0
+
+# Modbus (optional)
+# pymodbus>=3.5,<4.0

@@ -1,0 +1,209 @@
+# MiHex 配置示例
+# 复制此文件为 conf.yaml 并填入你的设备配置。
+#   cp conf.yaml.example conf.yaml
+
+# runner:
+#   环境概况: 室内PM2.5为{{MQTT device/zm1/b0f893249132/sensor.PM25}}，温度为{{MQTT device/zm1/b0f893249132/sensor.temperature}}，CO2为客厅{{客厅新风机 co2}}/主卧{{主卧新风机 3-4}}/儿童房{{MQTT JingHuaQi4/co2}}。室外PM2.5为{{MQTT ChuanGanQi/pm2dot5}}，温度为{{MQTT ChuanGanQi/temperature}}。{{天气}}
+
+# ding:
+#   token: YOUR_DINGTALK_TOKEN
+#   secret: YOUR_DINGTALK_SECRET
+
+# gate:
+#   host: localhost
+#   port: 8884
+
+weather:
+  location: 120.01234,30.56789
+  # api_key: YOUR_CAIYUN_API_KEY  # 彩云天气 API Key，默认使用内置 Key
+
+mqtt:
+  # host: localhost
+  # port: 1883
+  weather:
+    - NAME: 阳台温度
+      UNIT: ℃
+      LINK: http://m.nmc.cn/publish/forecast/AZJ/hangzhou.html
+      DESC: 中央气象台
+      stat: ChuanGanQi/temperature
+    - NAME: 阳台湿度
+      UNIT: '%'
+      LINK: 'https://m.weathercn.com/index.do?id=106832'
+      DESC: 杭州天气
+      stat: ChuanGanQi/humidity
+    - NAME: 阳台空气质量
+      UNIT: aqi
+      LINK: https://www.lewei50.com/u/g/34131
+      DESC: 室外传感器
+      stat: ChuanGanQi/pm2dot5
+  sensor:
+    - NAME: 餐厅温度
+      UNIT: ℃
+      stat: device/zm1/b0f893249132/sensor
+      json: temperature
+    - NAME: 餐厅湿度
+      UNIT: '%'
+      stat: device/zm1/b0f893249132/sensor
+      json: humidity
+    - NAME: 餐厅空气质量
+      UNIT: aqi
+      stat: device/zm1/b0f893249132/sensor
+      json: PM25
+    - NAME: 餐厅甲醛
+      UNIT: hcho
+      stat: device/zm1/b0f893249132/sensor
+      json: formaldehyde
+
+# miio:
+#   user: YOUR_MIIO_ACCOUNT
+#   pass: YOUR_MIIO_PASSWORD
+#   auto: true          # 自动发现全部未配置设备
+#   # auto: 我的家       # 或者：只发现指定家庭下的设备
+#   # auto: [台灯, 新风机]  # 或者：只发现指定名称的设备（名称需与米家 App 中一致）
+#   书区台灯:
+#     TYPE: light
+#     ICON: lamp
+#   衣柜台灯:
+#     TYPE: light
+#     ICON: lamp
+#     tune: 2-2
+#   客厅新风机:
+#     - TYPE: purifier
+#       UNIT: co₂
+#       stat: co2
+#       ison: power
+#       voon: 'on'
+#       voff: 'off'
+#       mode: mode
+#       MODS: {auto: 自动, silent: 静音, interval: 间歇, low: 低档, middle: 中档, strong: 高档}
+#       togl: led_level
+#       TOGL_ON: 0
+#       TOGL_OFF: 2
+#     - NAME: 客厅温度
+#       UNIT: ℃
+#       stat: temp_dec
+#     - NAME: 客厅湿度
+#       UNIT: '%'
+#       stat: humidity
+#     - NAME: 客厅空气质量
+#       UNIT: aqi
+#       stat: aqi
+#   客厅灯:
+#     TYPE: light
+#     voon: true
+#     voff: false
+#   洗衣机:
+#     TYPE: washer
+#     ison: 2-2
+
+# broadlink:
+#   - NAME: 呼吸机
+#     ICON: head-flash
+#     type: 30014
+#     host: 192.168.1.82
+#     mac: 34ea34b836ac
+#   - type: 10141
+#     host: 192.168.1.53
+#     mac: 34ea3458735d
+#     cover:
+#       - NAME: 书房窗帘
+#         code: 杜亚窗帘
+#       - NAME: 书房幕布
+#         code: 亿立幕布
+#     player:
+#       - NAME: 投影仪
+#         code: 优派投影仪
+#   - type: 10039
+#     host: 192.168.1.54
+#     mac: 780f7747aa8f
+#     fan:
+#       - NAME: 客厅壁扇
+#         code: 美的壁扇
+
+# modbus:
+#   host: 192.168.1.60
+#   port: 8899
+#   mods: { 0: 关闭, 1: 制冷, 2: 制热, 3: 干燥, 4: 通风 }
+#   fan_mods: { 0: 自动, 1: 一档, 2: 二档, 3: 三档, 4: 四档, 5: 五档 }
+#   climate:
+#     - NAME: 餐厅空调
+#       turn: { reg: 1, type: coil }
+#       tune: 4
+#       temp: { reg: 3, type: input, scale: 0.1 }
+#       mode: 5
+#       fan_mode: 6
+#     - NAME: 客厅空调
+#       turn: { reg: 2, type: coil }
+#       tune: 8
+#       temp: { reg: 6, type: input, scale: 0.1 }
+#       mode: 9
+#       fan_mode: 10
+#     - NAME: 主卧空调
+#       turn: { reg: 3, type: coil }
+#       tune: 12
+#       temp: { reg: 9, type: input, scale: 0.1 }
+#       mode: 13
+#       fan_mode: 14
+#     - NAME: 儿童房空调
+#       turn: { reg: 4, type: coil }
+#       tune: 16
+#       temp: { reg: 12, type: input, scale: 0.1 }
+#       mode: 17
+#       fan_mode: 18
+
+# saswell:
+#   - NAME: 客厅地暖
+#     host: 192.168.1.56
+#     did: 10382435CC059E60
+#   - NAME: 主卧地暖
+#     host: 192.168.1.57
+#     did: 10382435CC059F72
+
+ping:
+  - NAME: 爸爸
+    ICON: face-outline
+    LINK: https://github.com/Yonsm/
+    host: 192.168.1.13
+  - NAME: 妈妈
+    ICON: face-woman-outline
+    host: 192.168.1.14
+  # - NAME: 小主机
+  #   ICON: server
+  #   TYPE: switch
+  #   host: 192.168.1.10
+  #   mac: 7C2BE113A2BB
+
+# shell:
+#   switch:
+#     - NAME: 小雅
+#       ICON: google-drive
+#       DESC: 聚合网盘
+#       EXEC: http://server.example.com:5678/
+#       stat: [ssh, -p, '222', server.example.com, 'docker inspect -f "{{json .State.Running}}" alist']
+#       ison: 'true'
+#       toon: [ssh, -p, '222', server.example.com, 'docker start alist']
+#       toff: [ssh, -p, '222', server.example.com, 'docker stop alist']
+
+server:
+  port: 888 # 默认：88
+  # token: your_token  # 设置后访问需认证（浏览器弹出密码框，密码填此值）
+  # key: /root/cert.key
+  # cert: /root/cert.crt
+  link:
+    - NAME: 路由器
+      ICON: router-wireless
+      LINK: http://192.168.1.1/
+    - NAME: 状态列表
+      ICON: code-braces
+      LINK: '/states?your_token'
+    - NAME: 对象列表
+      ICON: opera
+      LINK: '/objects?your_token'
+    - NAME: 重新载入
+      ICON: reload
+      LINK: location.reload(true)
+    # TITL: 米和智家        # 仪表盘标题
+
+tracker:
+  # fast: 60
+  # slow: 3600

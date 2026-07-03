@@ -1,0 +1,203 @@
+.grid {
+	float: left;
+	width: 120px;
+	height: 120px;
+	margin: 2px;
+	color: white;
+	font-size: 14px;
+	font-weight: 300;
+	text-align: center;
+}
+
+.bgnd {
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-color: #555555;
+}
+
+@media (hover: hover) {
+	.grid:hover {
+		background-color: #009688;
+		cursor: pointer;
+	}
+
+	.tuner:hover,
+	.moder:hover {
+		background-color: #9c27b0;
+		cursor: pointer;
+	}
+}
+
+.weather {
+	background-color: #00bcd4;
+}
+
+.sensor {
+	background-color: #00bcd4;
+}
+
+.binary {
+	background-color: #03a9f4;
+}
+
+.device {
+	background-color: #2196f3;
+}
+
+.light {
+	background-color: #ff8000;
+}
+
+.switch,
+.player,
+.vacuum,
+.washer {
+	background-color: #ff7500;
+}
+
+.cover {
+	background-color: #ff7000;
+}
+
+.fan,
+.purifier {
+	background-color: #8bc34a;
+}
+
+.climate {
+	background-color: #609735;
+}
+
+.thermostat {
+	background-color: #499738;
+}
+
+.name,
+.desc {
+	height: 34px;
+	line-height: 34px;
+	overflow: hidden;
+	text-overflow: clip;
+	white-space: nowrap;
+}
+
+.noname {
+	height: 16px;
+	line-height: 16px;
+}
+
+.stat {
+	height: 52px;
+	line-height: 52px;
+	overflow: hidden;
+	font-size: 44px;
+}
+
+.unit {
+	font-size: 10px;
+}
+
+.off {
+	color: rgba(230, 230, 230, 0.5);
+}
+
+.caution {
+	color: #ffd835;
+}
+
+.critical {
+	color: #e91e63;
+}
+
+.moder,
+.tuner {
+	height: 30px;
+	line-height: 30px;
+	display: inline-block;
+	border-radius: 4px;
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.moder {
+	border: 0;
+	width: 56px;
+	color: white;
+	padding: 1px 0;
+	appearance: none;
+	text-align: center;
+	text-align-last: center;
+	text-transform: capitalize;
+	-webkit-appearance: none;
+}
+
+.tuner {
+	margin: 2px;
+	width: 30px;
+}
+
+::-webkit-scrollbar {
+	display: none;
+}
+
+body {
+	margin: 0;
+	color: white;
+	font-family: Helvetica;
+	background-color: black;
+	-webkit-user-select: none;
+}
+
+#loading,
+#error {
+	position: fixed;
+	z-index: 1;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+	text-align: center;
+	background-color: rgba(0, 0, 0, 0.7);
+}
+
+#loading {
+	width: 100px;
+	height: 100px;
+	line-height: 100px;
+	border: 5px rgba(0, 0, 0, 0.1) solid;
+	border-left-color: #ff5500;
+	border-right-color: #0c80fe;
+	border-radius: 100%;
+	animation: loading 2s infinite linear;
+}
+
+.tuning {
+	animation: tuning 1s infinite alternate;
+}
+
+#error {
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	padding: 20px;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+}
+
+@keyframes loading {
+	from {
+		transform: rotate(0deg);
+	}
+
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes tuning {
+	100% {
+		background: #607d8b;
+	}
+}
