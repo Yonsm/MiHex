@@ -8,7 +8,7 @@ scaling and offset.
 import struct
 from asyncio import get_running_loop
 from ..entity import Entity, _LOGS
-from ..server import send_state
+# from ..server import send_state
 from pymodbus.client import ModbusTcpClient
 from pymodbus.framer import FramerType
 

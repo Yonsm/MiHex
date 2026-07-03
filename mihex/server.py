@@ -8,7 +8,6 @@ WebSocket broadcast. No external dependencies required.
 from json import loads, dumps
 from asyncio import Queue, get_running_loop, start_server, IncompleteReadError
 from os.path import join, isfile, splitext, normpath, dirname, abspath, commonpath
-from sys import modules
 from http import HTTPStatus
 from hashlib import sha1
 from base64 import b64encode, b64decode
@@ -237,7 +236,7 @@ class WebServer:
             else:
                 if url_path == '/':
                     url_path = '/dash.htm'
-                www = join(dirname(abspath(modules['__main__'].__file__)), 'www')
+                www = join(dirname(abspath(__file__)), 'www')
                 fp = normpath(join(www, url_path.lstrip('/')))
                 if commonpath([fp, www]) == www and isfile(fp):
                     ext = splitext(fp)[1].lower()
