@@ -47,6 +47,10 @@ _SERVICE_TYPES = {
     'camera-control': 'camera',
     'humidifier': 'humidifier',
     'dehumidifier': 'humidifier',
+    'magnet-sensor': 'binary',
+    'motion-sensor': 'binary',
+    'submersion-sensor': 'binary',
+    'smoke-sensor': 'binary',
 }
 
 # Model prefix → TYPE, used only as a fallback when the MIoT spec fetch fails
@@ -152,14 +156,25 @@ def parse_spec(spec):
         if svc.get('description', '').lower() == 'device information':
             continue
 
+        svc_type = _service_type_hint(svc.get('type', ''))
         if type_hint is None:
-            type_hint = _service_type_hint(svc.get('type', ''))
+            type_hint = svc_type
 
         for prop in svc.get('properties', []):
             piid = prop.get('iid', 0)
             iid = f'{siid}-{piid}'
             access = prop.get('access', [])
             urn = _urn_name(prop.get('type', ''))
+
+            # Binary security sensors (door/window, motion, water leak, smoke)
+            # each expose a single read-only bool status property, but its
+            # URN name isn't standardized across brands the way climate/light
+            # controls are — so rely on the service's own classification
+            # instead of a name lookup, and take the first bool reading.
+            if svc_type == 'binary' and 'ison' not in conf \
+                    and 'read' in access and prop.get('format') == 'bool':
+                conf['ison'] = iid
+                continue
 
             # Control attributes
             if urn in _SPEC_ATTRS and 'write' in access:

@@ -26,8 +26,9 @@ class viomi_washer(MiIOEntity):
 		argc = len(args)
 		if argc > 0:
 			if args[0] == '预约取消':
-				await miio_service.miot_set_prop(self.did, module.Custom.Appoint_Time, 0)
-				await sleep(5)
+				if hasattr(module, 'Custom'):
+					await miio_service.miot_set_prop(self.did, module.Custom.Appoint_Time, 0)
+					await sleep(5)
 				await miio_service.miot_set_prop(self.did, module.Washer.Switch_Status, False)
 				return "预约洗衣已取消"
 			elif args[0] != '预约洗衣':

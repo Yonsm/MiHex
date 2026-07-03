@@ -49,7 +49,7 @@ async def setup(conf):
         _LOGS.error('MiIO init failed: %s', e)
         return
 
-    auto = conf.get('auto') or not (k not in CONF_KEYS for k in conf)
+    auto = conf.get('auto') or all(k in CONF_KEYS for k in conf)
     auto_names = set(auto) if isinstance(auto, list) else None
     auto_devs = []
 
@@ -112,7 +112,7 @@ class MiIOEntity(Entity):
                     setattr(self, k, twins_split(v, 1))
         if extra := getattr(self, 'extra_stat', None):
             self.extra_stat = [(twins_split(iid, 1) if iid[0].isdigit() else iid, unit) for iid, unit in extra]
-        if not hasattr(self, 'ison') and not hasattr(self, 'stat'):
+        if not hasattr(self, 'ison') and not hasattr(self, 'stat') and self.TYPE != 'binary':
             self.ison = (2, 1)
 
     async def service(self, args):
