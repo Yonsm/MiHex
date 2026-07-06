@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/mihex)](https://pypi.org/project/mihex/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**版本**：v1.2.3（[更新日志](CHANGELOG.md)）
+**版本**：v1.2.4（[更新日志](CHANGELOG.md)）
 
 MIni Home EXecutor — 轻量级智能家居管理服务，支持 macOS、Linux、OpenWrt、MiWiFi。
 

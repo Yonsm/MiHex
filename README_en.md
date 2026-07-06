@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/mihex)](https://pypi.org/project/mihex/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**Version**: v1.2.3 ([Changelog](CHANGELOG.md))
+**Version**: v1.2.4 ([Changelog](CHANGELOG.md))
 
 MIni Home EXecutor — a lightweight smart home management service for macOS, Linux, OpenWrt, and MiWiFi.
 
