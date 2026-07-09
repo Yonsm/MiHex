@@ -295,15 +295,25 @@ async def setup(conf):
         context = create_default_context(Purpose.CLIENT_AUTH)
         context.load_cert_chain(certfile=cert, keyfile=conf.get('key'))
 
-    host = conf.get('host')
+    bind = conf.get('bind')
     port = conf.get('port', 88)
     scheme = 'https' if context else 'http'
-    host2 = host if host and host not in ('0.0.0.0', '::') else 'localhost'
+    if not (host := conf.get('host')):
+        if bind and bind not in ('0.0.0.0', '::'):
+            host = bind
+        else:
+            from socket import socket, AF_INET, SOCK_DGRAM
+            try:
+                with socket(AF_INET, SOCK_DGRAM) as s:
+                    s.connect(('10.255.255.1', 80))
+                    host = s.getsockname()[0]
+            except Exception:
+                host = 'localhost'
     token_suffix = f'?{_token}' if _token else ''
     server = WebServer()
-    await start_server(server._serve, host, port, ssl=context, backlog=16)
+    await start_server(server._serve, bind, port, ssl=context, backlog=16)
     get_running_loop().create_task(_worker())
-    _LOGS.warning("Dashboard: %s://%s:%s/%s", scheme, host2, port, token_suffix)
+    _LOGS.warning("Dashboard: %s://%s:%s/%s", scheme, host, port, token_suffix)
     return [Entity(c, k) for k, v in conf.items() if type(v) is list for c in v]
 
 

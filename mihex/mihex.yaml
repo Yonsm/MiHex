@@ -185,7 +185,9 @@ ping:
 #       toff: [ssh, -p, '222', server.example.com, 'docker stop alist']
 
 server:
+  # bind: 0.0.0.0           # 监听地址，默认监听所有接口
   port: 888 # 默认：88
+  # host: home.example.com  # 对外主机名（DDNS 等），用于日志显示
   # token: your_token  # 设置后访问需认证（浏览器弹出密码框，密码填此值）
   # key: /root/cert.key
   # cert: /root/cert.crt
