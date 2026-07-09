@@ -12,12 +12,10 @@ from logging import (
     StreamHandler,
 )
 from os import chdir
-from os.path import abspath, dirname, exists, join
+from os.path import abspath, dirname, exists, expanduser, join
 from sys import argv
 
 from . import __version__
-
-dir = dirname(abspath(__file__))
 
 
 def main():
@@ -57,12 +55,11 @@ Usage:
     if argc > argi + 1 and argv[argi] == "-c":
         file = argv[argi + 1]
         argi += 2
-        chdir(dirname(abspath(file)))
-    elif exists("conf.yaml"):
-        file = "conf.yaml"
+    elif exists(file := "mihex.yaml") or exists(file := expanduser("~/mihex.yaml")):
+        pass
     else:
-        chdir(dir)
-        file = join(dir, "conf.yaml.example")
+        file = join(dirname(abspath(__file__)), "mihex.yaml")
+    chdir(dirname(abspath(file)))
     _LOGS.warning("MiHex load %s", file)
 
     if level != NOTSET:

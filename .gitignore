@@ -1,5 +1,5 @@
 # Configuration & secrets
-conf.yaml
+./mihex.yaml
 .mi.token
 .miot_specs.json
 
