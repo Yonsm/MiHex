@@ -6,8 +6,7 @@ scaling and offset.
 """
 
 import struct
-from asyncio import get_running_loop
-from ..entity import Entity
+from ..entity import Entity, runin
 from pymodbus.client import ModbusTcpClient
 from pymodbus.framer import FramerType
 from logging import getLogger, DEBUG
@@ -77,9 +76,8 @@ class ModbusEntity(Entity):
         self.reconn()
 
     async def update(self):
-        loop = get_running_loop()
         try:
-            result = await loop.run_in_executor(None, self._read_all)
+            result = await runin(self._read_all)
             if result:
                 return True
         except Exception as e:
@@ -88,7 +86,7 @@ class ModbusEntity(Entity):
             self.ISON = 0
             self.MODE = None
             _LOG.error("Read exception: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
-            self.exception()
+            await runin(self.exception)
 
     def _read_all(self):
         """Read all registers synchronously (runs in thread pool executor)."""
@@ -100,20 +98,17 @@ class ModbusEntity(Entity):
         return True
 
     async def on_turn(self, arg):
-        loop = get_running_loop()
-        await loop.run_in_executor(None, self.write, self.turn, arg)
+        await runin(self.write, self.turn, arg)
         await super().on_turn(arg)
 
     async def on_mode(self, arg):
-        loop = get_running_loop()
         mode = next((k for k, v in self._mods.items() if v == arg), None)
-        await loop.run_in_executor(None, self.write, self.mode, mode)
+        await runin(self.write, self.mode, mode)
         # self.MODE = arg
         # await send_state(self)
 
     async def on_tune(self, arg):
-        loop = get_running_loop()
-        await loop.run_in_executor(None, self.write, self.tune, arg)
+        await runin(self.write, self.tune, arg)
         # self.DESC = arg
         # await send_state(self)
 
