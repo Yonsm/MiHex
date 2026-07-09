@@ -1,36 +1,17 @@
 """MiHex CLI — run via `python -m mihex` or the `mihex` console script."""
 
 from asyncio import set_event_loop
-from logging import (
-    DEBUG,
-    ERROR,
-    FATAL,
-    INFO,
-    NOTSET,
-    WARNING,
-    FileHandler,
-    StreamHandler,
-)
 from os import chdir
 from os.path import abspath, dirname, exists, expanduser, join
 from sys import argv
+from logging import getLogger, DEBUG, INFO, WARNING, ERROR, CRITICAL, FileHandler, Formatter, StreamHandler, disable
+_LOG = getLogger('mihex')
 
-from . import __version__
 
-
-def main():
-    """Run MiHex service or execute a one-shot command."""
-    from .entity import _LOGS, _LOOP
-    from .loader import load
-    from .runner import exec
-
-    argc = len(argv)
-    argi = 1
-    level = -1
-    if argc > 1:
-        if argv[1].startswith("-h"):
-            print(
-                f"""
+def usage():
+    from . import __version__
+    print(
+        f"""
 Mini Home executive {__version__}
 
 Usage:
@@ -41,16 +22,35 @@ Usage:
    %s Name [MiIO Command]
 
 """
-                % (argv[0], argv[0], argv[0], argv[0])
-            )
+        % (argv[0], argv[0], argv[0], argv[0])
+    )
+
+
+def main():
+    """Run MiHex service or execute a one-shot command."""
+    from .entity import _LOOP
+    from .loader import load
+    from .runner import exec
+
+    argc = len(argv)
+    argi = 1
+    level = WARNING
+    if argc > 1:
+        if argv[1].startswith("-h"):
+            usage()
             return
         elif argv[1].startswith("-v") or argv[1].startswith("-V"):
             argi = 2
-            level = (
-                [NOTSET, FATAL, ERROR, WARNING, INFO, DEBUG][min(int(argv[1][2]), 5)]
-                if len(argv[1]) > 2 and argv[1][2].isdigit()
-                else INFO
-            )
+            level = [CRITICAL + 1, CRITICAL, ERROR, WARNING, INFO, DEBUG][min(int(argv[1][2]), 5)] if len(argv[1]) > 2 and argv[1][2].isdigit() else INFO
+
+    if level <= CRITICAL:
+        if level != WARNING:
+            _LOG.setLevel(level)
+        handler = FileHandler("/tmp/mihex.log", "w") if argc > 1 and argv[1].startswith("-V") else StreamHandler()
+        handler.setFormatter(Formatter("%(name)s: %(message)s"))
+        _LOG.addHandler(handler)
+    else:
+        disable(CRITICAL + 1)
 
     if argc > argi + 1 and argv[argi] == "-c":
         file = argv[argi + 1]
@@ -60,15 +60,7 @@ Usage:
     else:
         file = join(dirname(abspath(__file__)), "mihex.yaml")
     chdir(dirname(abspath(file)))
-    _LOGS.warning("MiHex load %s", file)
-
-    if level != NOTSET:
-        _LOGS.setLevel((INFO if argc > argi else WARNING) if level == -1 else level)
-        _LOGS.addHandler(
-            FileHandler("/tmp/mihex.log", "w")
-            if argc > 1 and argv[1].startswith("-V")
-            else StreamHandler()
-        )
+    _LOG.warning("Load %s", file)
 
     try:
         set_event_loop(_LOOP)
@@ -76,12 +68,12 @@ Usage:
         if argc > argi:
             r = _LOOP.run_until_complete(exec(argv[argi:]))
             if r is not None:
-                _LOGS.warning(r)
+                _LOG.warning("Result: %s", r)
         else:
-            _LOGS.warning("\nMiHex running...")
+            _LOG.warning("Running...")
             _LOOP.run_forever()
     except Exception as e:
-        _LOGS.exception(e)
+        _LOG.error("Crashed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
     finally:
         # _LOOP.run_until_complete(unload())
         _LOOP.close()

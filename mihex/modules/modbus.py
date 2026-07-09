@@ -7,10 +7,11 @@ scaling and offset.
 
 import struct
 from asyncio import get_running_loop
-from ..entity import Entity, _LOGS
-# from ..server import send_state
+from ..entity import Entity
 from pymodbus.client import ModbusTcpClient
 from pymodbus.framer import FramerType
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 _hub = None
 _TYPES = {'int': {1: 'h', 2: 'i', 4: 'q'}, 'uint': {1: 'H', 2: 'I', 4: 'Q'}, 'float': {1: 'e', 2: 'f', 4: 'd'}}
@@ -45,7 +46,7 @@ class ModbusEntity(Entity):
                 try:
                     reg['structure'] = '>{}'.format(_TYPES['int' if dtype is None else dtype][count])
                 except KeyError:
-                    _LOGS.error("Unable to detect data type for %s", prop)
+                    _LOG.error("Unable to detect data type for %s", prop, exc_info=_LOG.isEnabledFor(DEBUG))
                     continue
 
     @property
@@ -53,7 +54,7 @@ class ModbusEntity(Entity):
         return list(self._mods.values())
 
     def reset(self):
-        _LOGS.warning("Modbus reset")
+        _LOG.warning("Reset")
         import socket
         import time
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,7 +65,7 @@ class ModbusEntity(Entity):
         time.sleep(1)
 
     def reconn(self):
-        _LOGS.warning("Modbus reconnect")
+        _LOG.warning("Reconnect")
 
     def exception(self):
         turns = self._error // 4
@@ -86,7 +87,7 @@ class ModbusEntity(Entity):
             self.DESC = None
             self.ISON = 0
             self.MODE = None
-            _LOGS.error(f"Modbus read exception: {e}")
+            _LOG.error("Read exception: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
             self.exception()
 
     def _read_all(self):
@@ -130,7 +131,7 @@ class ModbusEntity(Entity):
         if rtype == 'coil':
             ret = _hub.read_coils(address, slave=slave, count=count)
             if ret.isError():
-                _LOGS.error(f"Modbus read_coils error: {ret}")
+                _LOG.error("read_coils error: %s", ret)
                 return None
             return bool(ret.bits[0])
         if rtype == 'input':
@@ -138,7 +139,7 @@ class ModbusEntity(Entity):
         else:
             ret = _hub.read_holding_registers(address, slave=slave, count=count)
         if ret.isError():
-            _LOGS.error(f"Modbus read_registers error: {ret}")
+            _LOG.error("read_registers error: %s", ret)
             return None
         registers = ret.registers
         if reg.get('reverse'):

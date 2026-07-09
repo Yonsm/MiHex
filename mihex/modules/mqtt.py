@@ -8,7 +8,9 @@ the runner's {{}} expansion syntax.
 from json import loads
 from paho.mqtt.client import Client, CallbackAPIVersion
 from ..server import send_state
-from ..entity import Entity, _OBJS, _LOGS, runas
+from ..entity import Entity, _OBJS, runas
+from logging import getLogger
+_LOG = getLogger(__name__)
 
 _msgs = {}
 _mqtt = None
@@ -23,8 +25,8 @@ class MQTTClient(Client):
         super().__init__(CallbackAPIVersion.VERSION2)
         self.on_message = message_handler
         self.on_connect = self._handle_connect
-        self.on_connect_fail = lambda c, u: _LOGS.warning("MQTT %s:%s connect failed, retrying..." % (host, port))
-        self.on_disconnect = lambda c, u, f, r, p: _LOGS.warning("MQTT %s:%s disconnected: %s" % (host, port, r))
+        self.on_connect_fail = lambda c, u: _LOG.error("%s:%s connect failed, retrying...", host, port)
+        self.on_disconnect = lambda c, u, f, r, p: _LOG.warning("%s:%s disconnected: %s", host, port, r)
         self.reconnect_delay_set(min_delay=1, max_delay=120)
         self._topic = topic
         self.connect_async(host, port)
@@ -33,9 +35,9 @@ class MQTTClient(Client):
     def _handle_connect(self, client, userdata, flags, rc, props):
         if rc == 0:
             self.subscribe(self._topic)
-            _LOGS.info("MQTT %s:%s connected" % (self.host, self.port))
+            _LOG.info("%s:%s connected", self.host, self.port)
         else:
-            _LOGS.error("MQTT %s:%s connected error: %s" % (self.host, self.port, rc))
+            _LOG.error("%s:%s connection error: %s", self.host, self.port, rc)
 
 
 def setup(conf):
@@ -71,7 +73,7 @@ def on_message(client, data, msg):
     payload = msg.payload
     if isinstance(payload, bytes):
         if len(payload) > _MAX_PAYLOAD:
-            _LOGS.warning(f"MQTT payload too large ({len(payload)} bytes), dropped: {topic}")
+            _LOG.warning("Payload too large (%d bytes), dropped: %s", len(payload), topic)
             return
         payload = payload.decode()
     runas(_handle_message(topic, payload))

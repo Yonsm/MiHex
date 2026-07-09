@@ -6,9 +6,11 @@ dispatch system. Supports Chinese word substitutions for natural
 voice input parsing.
 """
 
-from ..entity import _LOGS, runas
+from ..entity import runas
 from ..runner import exec
 from .mqtt import MQTTClient, loads
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 # Word substitutions for voice command parsing (Chinese → separator symbols)
 _SUBS = {'文本': '#', '设为': '=', '也': ',', '者': '/', '乎': '.'}
@@ -36,7 +38,7 @@ def on_message(client, userdata, message):
             value = value.replace(old, new)
         runas(exec(value.split('之')))
     except Exception as e:
-        _LOGS.error(e)
+        _LOG.error("Command failed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
 
 
 def setup(conf):

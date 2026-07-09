@@ -7,8 +7,10 @@ Data is cached for 1 hour to reduce API calls.
 
 from random import randint
 from time import time
-from ..entity import Entity, _LOGS
+from ..entity import Entity
 from ..runner import fetch
+from logging import getLogger
+_LOG = getLogger(__name__)
 
 _API_KEY = 'UR8ASaplvIwavDfR'
 
@@ -56,7 +58,7 @@ class WeatherEntity(Entity):
     async def update(self):
         """Refresh weather data if the cache has expired (1 hour)."""
         if self.STAT and int(time()) - self.stamp < 3600:
-            return _LOGS.debug("Weather data is fresh")
+            return _LOG.debug("Data is fresh")
         if resp := await fetch2(self.location):
             result = resp['result']
             realtime = result['realtime']
@@ -67,7 +69,7 @@ class WeatherEntity(Entity):
             stat = 1
             desc = f"{temperature}℃ {humidity}% {realtime.get('pm25')}μg {result['forecast_keypoint']}"
             self.stamp = resp['server_time']
-            _LOGS.debug("Weather data updated")
+            _LOG.debug("Data updated")
         else:
             icon = 'weather-cloudy-alert'
             stat = None

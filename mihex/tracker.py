@@ -6,8 +6,10 @@ real-time updates. When no clients are connected, it falls back to
 slow mode to conserve resources on embedded devices.
 """
 
-from .entity import _LOGS, _OBJS, _LOOP
+from .entity import _OBJS, _LOOP
 from asyncio import iscoroutine, wait_for, TimeoutError as async_timeout, gather, Lock, Event
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 _fast = 60
 _slow = 3600
@@ -30,7 +32,7 @@ def fast():
     """Switch to fast polling mode (triggered when a WebSocket client connects)."""
     global _gap
     _gap = _fast
-    _LOGS.info("Tracker fast mode")
+    _LOG.info("Fast mode")
     if _event:
         _event.set()
 
@@ -39,7 +41,7 @@ def slow():
     """Switch to slow polling mode (triggered when all WebSocket clients disconnect)."""
     global _gap
     _gap = _slow
-    _LOGS.info("Tracker slow mode")
+    _LOG.info("Slow mode")
 
 
 async def tracker():
@@ -56,12 +58,12 @@ async def tracker():
 async def track():
     """Run one update cycle across all objects that have an update() method."""
     async with _track_lock:
-        _LOGS.info("Tracker working")
+        _LOG.info("Working")
         # Update all devices concurrently rather than sequentially
         tasks = [tracking(obj) for obj in _OBJS if hasattr(obj, 'update')]
         if tasks:
             await gather(*tasks, return_exceptions=True)
-        _LOGS.info("Tracker completed")
+        _LOG.info("Completed")
 
 
 async def tracking(obj):
@@ -72,14 +74,14 @@ async def tracking(obj):
             from .server import send_state
             await send_state(obj if r is True else r)
     except async_timeout:
-        _LOGS.error(f"Tracking timeout: {obj.NAME}")
+        _LOG.error("Timeout: %s", obj.NAME, exc_info=_LOG.isEnabledFor(DEBUG))
     except Exception as e:
-        _LOGS.error(f"Tracking exception: {obj.NAME} {e}")
+        _LOG.error("Exception: %s %s", obj.NAME, e, exc_info=_LOG.isEnabledFor(DEBUG))
 
 
 async def _do_update(obj):
     """Run update(), handling both sync and async, offloading sync to thread pool."""
-    _LOGS.debug(f"Tracking {obj.NAME}")
+    _LOG.debug("Update %s", obj.NAME)
     r = obj.update()
     if iscoroutine(r):
         return await r

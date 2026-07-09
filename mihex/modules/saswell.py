@@ -5,8 +5,10 @@ Communicates with Saswell underfloor heating thermostats via TCP.
 Supports status polling, on/off control, and temperature setpoint adjustment.
 """
 
-from ..entity import Entity, _LOGS
+from ..entity import Entity
 from asyncio import open_connection, sleep
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 
 async def setup(conf):
@@ -40,34 +42,34 @@ class SaswellEntity(Entity):
 		try:
 			reader, writer = await open_connection(self.host, self.port)
 			if command is not None:
-				_LOGS.debug("Send command: " + command)
+				_LOG.debug("Send command: %s", command)
 				await reader.read(1024)  # Receive dummy
 				writer.write(command.encode())
 				await sleep(0.3)
 			if self.did is not None:
 				polling = f'/{self.did}/{self.stat}/{self.iid}\n'
-				_LOGS.debug("Send polling: " + polling)
+				_LOG.debug("Send polling: %s", polling)
 				writer.write(polling.encode())
 			while chunk := await reader.read(1024):
 				lines = chunk.decode().split('\n')
 				for line in lines:
 					if len(line) < 1 or line[0] != '/':
-						# _LOGS.error("Exception topic: " + line)
+						# _LOG.error("Exception topic: " + line)
 						continue
 					parts = line[1:].split('/')
 					if self.did is None:
 						self.did = parts[0]
 					elif self.did != parts[0]:
-						_LOGS.error("Device mis-match: " + line)
+						_LOG.error("Device mis-match: %s", line)
 						continue
 					if len(parts) < 4 or parts[1] != self.stat or '/'.join(parts[2:-1]) != self.iid:
-						_LOGS.debug("Not status topic: " + line)
+						_LOG.debug("Not status topic: %s", line)
 						continue
 					status = parts[-1].split(',')
 					if len(status) < 11:
-						_LOGS.error("Exception status: " + line)
+						_LOG.error("Exception status: %s", line)
 						continue
-					_LOGS.debug(line)
+					_LOG.debug("Status: %s", line)
 					# self.attrs['开关'] = '开启' if status[0] == '1' else '关闭'
 					# self.attrs['温度'] = float(status[1])
 					# self.attrs['目标温度'] = float(status[2])
@@ -80,7 +82,7 @@ class SaswellEntity(Entity):
 					from ..server import send_state
 					await send_state(self)
 		except Exception as e:
-			_LOGS.error(e)
+			_LOG.error("Update failed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
 		finally:
 			if 'writer' in locals():
 				writer.close()

@@ -8,7 +8,8 @@ from asyncio import sleep
 from importlib import import_module
 from datetime import datetime, timedelta
 from .. import miio_service, MiIOEntity
-from ....loader import _LOGS
+from logging import getLogger
+_LOG = getLogger(__name__)
 
 APPOINT_MIN = 1  # 3 in app default
 APPOINT_MAX = 23  # 19 in app default
@@ -20,7 +21,7 @@ class viomi_washer(MiIOEntity):
 		try:
 			module = import_module('.' + self.model.split('.')[-1], package="mihex.modules.miio.viomi_washer")
 		except ImportError:
-			_LOGS.warning("洗衣机类型不支持：%s" % self.model)
+			_LOG.warning("Unsupported washer model: %s", self.model)
 			return
 
 		argc = len(args)

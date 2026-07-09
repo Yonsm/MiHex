@@ -11,7 +11,9 @@ from broadlink import gendevice
 from base64 import b64decode
 from os.path import dirname, abspath, exists, join
 
-from ..entity import Entity, _OBJS, _LOGS, runin
+from ..entity import Entity, _OBJS, runin
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 
 def setup(conf):
@@ -42,7 +44,7 @@ class BLSwitchEntity(Entity):
             self._blrc.auth()
             return self._blrc.check_power()
         except Exception as e:
-            _LOGS.error('Broadlink check_power failed: %s', e)
+            _LOG.error("check_power failed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
             return None
 
     async def on_turn(self, arg):
@@ -54,7 +56,7 @@ class BLSwitchEntity(Entity):
             self._blrc.auth()
             self._blrc.set_power(arg)
         except Exception as e:
-            _LOGS.error('Broadlink set_power failed: %s', e)
+            _LOG.error("set_power failed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
 
 
 class BLRemoteEntity(Entity):
@@ -102,7 +104,7 @@ class BLRemoteEntity(Entity):
                     sleep(1)
                 self._blrc.send_data(b64decode(cmd))
         except Exception as e:
-            _LOGS.error('Broadlink send_data failed: %s', e)
+            _LOG.error("send_data failed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
 
     async def on_turn(self, arg):
         await self.service(['打开' if arg else '关闭'])

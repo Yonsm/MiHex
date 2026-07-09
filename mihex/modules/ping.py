@@ -5,9 +5,11 @@ Wake-on-LAN (WoL) for remote power-on. Devices can also be shut
 down via SSH.
 """
 
-from ..entity import Entity, _LOGS
+from ..entity import Entity
 from asyncio import create_subprocess_exec, wait_for, TimeoutError as AsyncTimeout
 from subprocess import PIPE
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 
 class PingEntity(Entity):
@@ -20,7 +22,7 @@ class PingEntity(Entity):
             await proc.wait()
             ison = 1 if proc.returncode == 0 else None
         except Exception as e:
-            _LOGS.error('Ping failed: %s %s', self.host, e)
+            _LOG.error("Failed: %s %s", self.host, e, exc_info=_LOG.isEnabledFor(DEBUG))
             ison = None
         if getattr(self, 'ISON', None) != ison:
             self.ISON = ison

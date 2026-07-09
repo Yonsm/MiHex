@@ -13,7 +13,9 @@ from sys import modules
 
 from yaml import safe_load
 
-from .entity import _LOGS, _OBJS
+from .entity import _OBJS
+from logging import getLogger
+_LOG = getLogger(__name__)
 
 _BUILTINS = ("runner", "server", "tracker")
 
@@ -47,7 +49,7 @@ def _import_file(name, path):
 
 async def _load(name, conf_val, mod):
     """Register a loaded module and run its setup."""
-    _LOGS.info("  %s", name)
+    _LOG.info("  %s", name)
     if not hasattr(mod, "NAME"):
         mod.NAME = name.upper()
     _OBJS.append(mod)

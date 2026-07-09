@@ -4,8 +4,9 @@ Sends text messages to a DingTalk group via a custom robot webhook,
 supporting HMAC-SHA256 signed requests for secure authentication.
 """
 
-from ..entity import _LOGS
 from ..runner import fetch
+from logging import getLogger
+_LOG = getLogger(__name__)
 
 _token = None
 _secret = None
@@ -30,7 +31,7 @@ async def service(args):
     resp = await fetch(url, {'msgtype': 'text', 'text': {'content': args[-1]}})
     if resp['errcode'] == 0:
         return resp
-    _LOGS.error('DingTalk send failed: %s', resp)
+    _LOG.error("Send failed: %s", resp)
 
 
 def setup(conf):

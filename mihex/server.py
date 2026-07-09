@@ -11,9 +11,11 @@ from os.path import join, isfile, splitext, normpath, dirname, abspath, commonpa
 from http import HTTPStatus
 from hashlib import sha1
 from base64 import b64encode, b64decode
-from .entity import Entity, _LOGS, _OBJS
+from .entity import Entity, _OBJS
 from .runner import exec
 from .tracker import fast, slow, track
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 # ── Constants ──
 
@@ -74,7 +76,7 @@ class WebSocket:
                     length = int.from_bytes(await self._r.readexactly(8), 'big')
 
                 if length > self._max_payload:
-                    _LOGS.warning("WebSocket payload too large (%d bytes), closing connection" % length)
+                    _LOG.warning("WebSocket payload too large (%d bytes), closing connection", length)
                     return None
 
                 mask = await self._r.readexactly(4) if b2 & 0x80 else b''
@@ -126,8 +128,8 @@ class WebSocket:
                     break
                 await self._on_message(self, msg)
         except Exception as e:
-            _LOGS.debug(f"WebSocket error: {e}")
-        _LOGS.debug("WebSocket closed")
+            _LOG.debug("WebSocket error: %s", e)
+        _LOG.debug("WebSocket closed")
 
     def _frame(self, opcode, payload):
         """Build and write a WebSocket frame."""
@@ -245,7 +247,7 @@ class WebServer:
                 else:
                     respond(404, 'Not Found')
         except Exception as e:
-            _LOGS.debug(f"Connection error: {e}")
+            _LOG.debug("Connection error: %s", e)
         finally:
             writer.close()
             try:
@@ -267,18 +269,16 @@ class WebServer:
                     raise Exception(f"Unknown service call: {call}")
                 await _send(func(data))
         except Exception as e:
-            text = f"WebSocket error: {e} {msg}"
-            _LOGS.exception(text)
-            await _send(text)
+            _LOG.error("WebSocket error: %s %s", e, msg, exc_info=_LOG.isEnabledFor(DEBUG))
+            await _send("WebSocket error: %s %s" % (e, msg))
 
     async def _exec(self, data):
         try:
             result = await exec(data)
             await _send({data[0]: result})
         except Exception as e:
-            text = f"Execution error: {e} {data}"
-            _LOGS.exception(text)
-            await _send(text)
+            _LOG.error("Execution error: %s %s", e, data, exc_info=_LOG.isEnabledFor(DEBUG))
+            await _send("Execution error: %s %s" % (e, data))
 
 
 # ── Server startup ──
@@ -313,7 +313,7 @@ async def setup(conf):
     server = WebServer()
     await start_server(server._serve, bind, port, ssl=context, backlog=16)
     get_running_loop().create_task(_worker())
-    _LOGS.warning("Dashboard: %s://%s:%s/%s", scheme, host, port, token_suffix)
+    _LOG.warning("%s://%s:%s/%s", scheme, host, port, token_suffix)
     return [Entity(c, k) for k, v in conf.items() if type(v) is list for c in v]
 
 

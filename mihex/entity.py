@@ -5,11 +5,11 @@ object registry (_OBJS), the shared event loop (_LOOP), and helper
 functions for running sync/coro code across threads.
 """
 
-from logging import getLogger
 from asyncio import new_event_loop, run_coroutine_threadsafe, get_running_loop
+from logging import getLogger, DEBUG
+_LOG = getLogger()
 
 _OBJS = []
-_LOGS = getLogger()
 _LOOP = new_event_loop()
 
 
@@ -35,7 +35,7 @@ def runas(coro):
         try:
             fut.result()
         except Exception as e:
-            _LOGS.exception(e)
+            _LOG.error("Runas failed: %s", e, exc_info=_LOG.isEnabledFor(DEBUG))
     run_coroutine_threadsafe(coro, _LOOP).add_done_callback(_on_done)
 
 
