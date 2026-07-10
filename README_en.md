@@ -17,7 +17,7 @@ Unified device management via MQTT, MiIO, Broadlink and other protocols, with a 
 
 - **Web Dashboard** — single-page UI with WebSocket real-time state push
 - **MQTT** — subscribe to topics for sensor data, publish commands to control devices
-- **MiIO** — integrate Xiaomi devices, support status query and control; auto-discover and configure undeclared devices via MIoT specs (auto-discovery is not thoroughly tested)
+- **MiIO** — integrate Xiaomi devices, support status query and control; auto-discover and configure undeclared devices via MIoT specs (auto-discovery is not thoroughly tested). Prefers LAN-local control (auto-derived from the cloud device list's `localip`/`token`, or a manual `host`/`token` override per device) and falls back to the cloud transparently on any failure; the local protocol is a from-scratch implementation not yet verified against real hardware — test on your own devices before relying on it
 - **Broadlink** — IR/RF remote control for non-smart devices
 - **Weather** — Caiyun Weather API: temperature, humidity, PM2.5, forecasts
 - **Ping** — ICMP probe for device online status, with Wake-on-LAN support

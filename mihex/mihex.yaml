@@ -63,6 +63,10 @@ mqtt:
 #   书区台灯:
 #     TYPE: light
 #     ICON: lamp
+#     # 控制优先走局域网直连：默认从云端设备列表自动获取 host/token，
+#     # 也可以像下面这样手动指定（比如云端没报 localip，或想固定 IP）
+#     # host: 192.168.1.99
+#     # token: 32位设备token
 #   衣柜台灯:
 #     TYPE: light
 #     ICON: lamp

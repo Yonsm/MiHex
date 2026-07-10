@@ -12,11 +12,50 @@ from ...server import send_state
 from ...loader import _OBJS
 from ...entity import Entity
 from .discover import auto_config, get_home_dids, group_members, CONF_KEYS
+from .local import LocalDevice
 from math import ceil
 from logging import getLogger, DEBUG
 _LOG = getLogger(__name__)
 
 miio_service = MiIOService()
+
+# LAN-local control (see local.py): best-effort, keyed by did. Populated from
+# the cloud device list's own 'localip'/'token' fields (or a manual 'host'/
+# 'token' override in conf) during setup(). Every call site below tries the
+# local entry first and falls back to the cloud API on any failure, so a
+# missing/wrong entry or a local-protocol bug just costs one extra round
+# trip rather than breaking control.
+_local_devices = {}
+_LOCAL_TIMEOUT = 2
+
+
+def _register_local(did, host, token):
+    """Register (or replace) the LAN-local control target for a device."""
+    if not host or not token:
+        return
+    try:
+        _local_devices[did] = LocalDevice(host, token, timeout=_LOCAL_TIMEOUT)
+    except ValueError as e:  # malformed token
+        _LOG.debug("Local control unavailable for %s: %s", did, e)
+
+
+async def _get_props(did, iids):
+    if local := _local_devices.get(did):
+        try:
+            return await local.get_props(iids)
+        except Exception as e:
+            _LOG.debug("Local get_props failed for %s, falling back to cloud: %s", did, e)
+    return await miio_service.miio_get_props(did, iids)
+
+
+async def _set_prop(did, iid, value):
+    if local := _local_devices.get(did):
+        try:
+            return await local.set_prop(iid, value)
+        except Exception as e:
+            _LOG.debug("Local set_prop failed for %s, falling back to cloud: %s", did, e)
+    return await miio_service.miio_set_prop(did, iid, value)
+
 
 # Startup retries for the initial cloud login/device_list fetch — mihex often
 # starts before the router's WAN link is fully up, so a transient failure
@@ -66,6 +105,9 @@ async def setup(conf):
                 await sleep(_INIT_BACKOFF * attempt)
     if devs is None:
         return
+
+    for dev in devs:
+        _register_local(dev['did'], dev.get('localip'), dev.get('token'))
 
     auto = conf.get('auto') or all(k in CONF_KEYS for k in conf)
     auto_names = set(auto) if isinstance(auto, list) else None
@@ -146,21 +188,30 @@ class MiIOEntity(Entity):
             self.extra_stat = [(twins_split(iid, 1) if iid[0].isdigit() else iid, unit) for iid, unit in extra]
         if not hasattr(self, 'ison') and not hasattr(self, 'stat') and self.TYPE != 'binary':
             self.ison = (2, 1)
+        # Manual local-control override (conf: host/token), independent of
+        # whatever the cloud device list reports for this did.
+        if (host := getattr(self, 'host', None)) and (token := getattr(self, 'token', None)):
+            _register_local(self.did, host, token)
 
     async def service(self, args):
-        """Execute a raw MiIO command on this device."""
+        """Execute a raw MiIO command on this device.
+
+        Always goes through the cloud — local control only covers property
+        get/set and actions (see _get_props/_set_prop), not the full
+        list/home/spec/raw-URI command grammar miio_command supports.
+        """
         r = await miio_command(miio_service, self.did, ' '.join(args))
         return r[0] if isinstance(r, list) and len(r) == 1 else r
 
     async def on_turn(self, ison):
         """Turn the device on or off."""
         voon = getattr(self, 'voon' if ison else 'voff', ison)
-        await miio_service.miio_set_prop(self.did, self.ison, voon)
+        await _set_prop(self.did, self.ison, voon)
         await super().on_turn(ison)
 
     async def on_mode(self, mode):
         """Switch the device operating mode."""
-        await miio_service.miio_set_prop(self.did, self.mode, mode)
+        await _set_prop(self.did, self.mode, mode)
 
     async def on_tune(self, tune):
         """Handle tune adjustments: increment/decrement, toggle, or rotate."""
@@ -173,17 +224,17 @@ class MiIOEntity(Entity):
                 val = min
             elif val > max:
                 val = max
-            await miio_service.miio_set_prop(self.did, getattr(self, 'tune_set', self.tune), val)
+            await _set_prop(self.did, getattr(self, 'tune_set', self.tune), val)
             self.TUNE = val
         elif tune == '◉' or tune == '◌':
             TOGL_ON = getattr(self, 'TOGL_ON', 'on')
             val = getattr(self, 'TOGL_OFF', 'off') if self.TOGL == TOGL_ON else TOGL_ON
-            await miio_service.miio_set_prop(self.did, self.togl, val)
+            await _set_prop(self.did, self.togl, val)
             self.TOGL = val
         elif tune == '◑' or tune == '◐':
             TOGR_ON = getattr(self, 'TOGR_ON', 'on')
             val = getattr(self, 'TOGR_OFF', 'off') if self.TOGR == TOGR_ON else TOGR_ON
-            await miio_service.miio_set_prop(self.did, self.togr, val)
+            await _set_prop(self.did, self.togr, val)
             self.TOGR = val
         await send_state(self)
 
@@ -203,7 +254,7 @@ class MiIODevice(MiIOEntity):
         iids = [v for ent in self.ents for attr in _ATTRS if (v := getattr(ent, attr, None))]
         extra = [(ent, iid, unit) for ent in self.ents for iid, unit in getattr(ent, 'extra_stat', [])]
         try:
-            props = await miio_service.miio_get_props(self.did, iids + [e[1] for e in extra])
+            props = await _get_props(self.did, iids + [e[1] for e in extra])
         except Exception as e:
             # Whole request failed (cloud/network down) — clear STAT/ISON so the
             # dashboard shows the device as offline instead of stale data.
