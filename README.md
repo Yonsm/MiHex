@@ -202,7 +202,7 @@ class MyEntity(Entity):
 ## 安全建议
 
 - `server.token` 鉴权基于 HTTP Basic / URL query 参数，未配置 `key`/`cert` 时以明文 HTTP 传输。设计定位是可信局域网内使用；若需公网访问，请务必配置 `key`/`cert` 启用 HTTPS，或放在已有 VPN/反向代理之后。
-- `conf.yaml`（含账号密码、Token 等敏感信息）与运行时生成的 `.mi.token`（小米云 session 缓存）已在 `.gitignore` 中，注意不要手动提交。
+- `conf.yaml`（含账号密码、Token 等敏感信息）与运行时生成的 `.mi.token`（小米云 session 缓存）、`.miot_specs.json`（MIoT spec 本地缓存，不含敏感信息，删除后会自动重新拉取）已在 `.gitignore` 中，注意不要手动提交。
 
 ## 致谢
 

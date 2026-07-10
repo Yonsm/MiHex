@@ -125,6 +125,7 @@ var _ICONS = {
 	person: 'account',
 	binary: 'bullseye',
 	device: 'cellphone',
+	camera: 'cctv',
 
 	light: 'ceiling-light',
 	switch: 'light-switch',

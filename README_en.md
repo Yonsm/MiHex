@@ -202,7 +202,7 @@ Add a same-named config section in `conf.yaml` and it will be auto-loaded.
 ## Security Notes
 
 - `server.token` auth is based on HTTP Basic / URL query parameter, and is transmitted in plain HTTP unless `key`/`cert` are configured. It's designed for use on a trusted LAN; if you need remote access, configure `key`/`cert` to enable HTTPS, or put it behind an existing VPN/reverse proxy.
-- `conf.yaml` (account passwords, tokens, etc.) and the runtime-generated `.mi.token` (Xiaomi cloud session cache) are already listed in `.gitignore` — avoid committing them manually.
+- `conf.yaml` (account passwords, tokens, etc.), the runtime-generated `.mi.token` (Xiaomi cloud session cache), and `.miot_specs.json` (local MIoT spec cache — holds no sensitive data, safe to delete to force a refresh) are already listed in `.gitignore` — avoid committing them manually.
 
 ## Acknowledgements
 

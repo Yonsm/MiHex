@@ -6,15 +6,27 @@ switching, and value tuning (brightness, fan speed, etc.).
 """
 
 from importlib import import_module
-from asyncio import gather
+from asyncio import gather, sleep, Semaphore
 from miservice import MiAccount, MiIOService, miio_command
 from ...server import send_state
-from ...loader import _OBJS, _LOGS
+from ...loader import _OBJS
 from ...entity import Entity
-from .discover import auto_config, get_home_dids, CONF_KEYS
+from .discover import auto_config, get_home_dids, group_members, CONF_KEYS
 from math import ceil
+from logging import getLogger, DEBUG
+_LOG = getLogger(__name__)
 
 miio_service = MiIOService()
+
+# Startup retries for the initial cloud login/device_list fetch — mihex often
+# starts before the router's WAN link is fully up, so a transient failure
+# here shouldn't strand the whole miio module until the next restart.
+_INIT_RETRIES = 3
+_INIT_BACKOFF = 2
+
+# Cap concurrent MIoT spec fetches during auto-discovery so a large device
+# list doesn't fire dozens of simultaneous requests at miot-spec.org.
+_DISCOVER_CONCURRENCY = 5
 
 
 def twins_split(string, default=None, sep='-'):
@@ -42,16 +54,24 @@ async def setup(conf):
             ICON: lamp
     """
 
-    try:
-        miio_service.account = MiAccount(None, conf['user'], conf['pass'])
-        devs = await miio_service.device_list('full')
-    except Exception as e:
-        _LOGS.error('MiIO init failed: %s', e)
+    miio_service.account = MiAccount(None, conf['user'], conf['pass'])
+    devs = None
+    for attempt in range(1, _INIT_RETRIES + 1):
+        try:
+            devs = await miio_service.device_list('full')
+            break
+        except Exception as e:
+            _LOG.error("Init failed (%d/%d): %s", attempt, _INIT_RETRIES, e, exc_info=_LOG.isEnabledFor(DEBUG))
+            if attempt < _INIT_RETRIES:
+                await sleep(_INIT_BACKOFF * attempt)
+    if devs is None:
         return
 
     auto = conf.get('auto') or all(k in CONF_KEYS for k in conf)
     auto_names = set(auto) if isinstance(auto, list) else None
     auto_devs = []
+    absorbed = group_members(devs)
+    manual_names = {k for k in conf if k not in CONF_KEYS}
 
     for dev in devs:
         name = dev['name']
@@ -59,6 +79,7 @@ async def setup(conf):
 
         if name in conf and name not in CONF_KEYS:
             # Manual configuration (existing behavior, takes priority)
+            manual_names.discard(name)
             args = conf[name]
             if type(args) is str:
                 args = {'TYPE': args}
@@ -75,8 +96,11 @@ async def setup(conf):
             ents[0].ents = ents
             _OBJS.extend(ents)
 
-        elif auto and (auto_names is None or name in auto_names):
+        elif auto and did not in absorbed and (auto_names is None or name in auto_names):
             auto_devs.append(dev)
+
+    for name in manual_names:
+        _LOG.warning("Configured device \"%s\" not found in Mi Home account (renamed or removed?)", name)
 
     # Filter by home name if specified (name-list mode already scoped above)
     if auto_devs and not isinstance(auto, list):
@@ -84,12 +108,20 @@ async def setup(conf):
         if dids is not None:
             auto_devs = [d for d in auto_devs if d['did'] in dids]
 
-    # Auto-discover in parallel (one entity per device — multiple sensor
-    # readings on the same device are merged into DESC, see MiIODevice.update)
+    # Auto-discover in parallel, capped at _DISCOVER_CONCURRENCY concurrent
+    # spec fetches (one entity per device — multiple sensor readings on the
+    # same device are merged into DESC, see MiIODevice.update)
     if auto_devs:
-        results = await gather(*(auto_config(miio_service, dev['name'], dev.get('model', ''))
-                                  for dev in auto_devs))
+        sem = Semaphore(_DISCOVER_CONCURRENCY)
+
+        async def _auto_config(dev):
+            async with sem:
+                return await auto_config(miio_service, dev['name'], dev.get('model', ''))
+
+        results = await gather(*(_auto_config(dev) for dev in auto_devs))
         for dev, cfg in zip(auto_devs, results):
+            if cfg is None:
+                continue
             ent = MiIODevice(cfg, dev['did'], dev['name'])
             ent.ents = [ent]
             _OBJS.append(ent)
@@ -170,7 +202,19 @@ class MiIODevice(MiIOEntity):
         rets = []
         iids = [v for ent in self.ents for attr in _ATTRS if (v := getattr(ent, attr, None))]
         extra = [(ent, iid, unit) for ent in self.ents for iid, unit in getattr(ent, 'extra_stat', [])]
-        props = await miio_service.miio_get_props(self.did, iids + [e[1] for e in extra])
+        try:
+            props = await miio_service.miio_get_props(self.did, iids + [e[1] for e in extra])
+        except Exception as e:
+            # Whole request failed (cloud/network down) — clear STAT/ISON so the
+            # dashboard shows the device as offline instead of stale data.
+            _LOG.error("get_props failed: %s %s", self.NAME, e, exc_info=_LOG.isEnabledFor(DEBUG))
+            for ent in self.ents:
+                for attr in ('STAT', 'ISON'):
+                    if getattr(ent, attr, None) is not None:
+                        setattr(ent, attr, None)
+                        if ent not in rets:
+                            rets.append(ent)
+            return rets
         i = 0
         for ent in self.ents:
             changed = False
@@ -185,7 +229,7 @@ class MiIODevice(MiIOEntity):
                             setattr(ent, ATTR, value)
                             changed = True
                     else:
-                        _LOGS.error('MiIO get_prop failed: %s/%s' % (ent.NAME, props[i]))
+                        _LOG.error("get_prop failed: %s/%s", ent.NAME, props[i])
                     i += 1
             if changed:
                 rets.append(ent)
@@ -196,6 +240,8 @@ class MiIODevice(MiIOEntity):
                 value = props[i]
                 i += 1
                 if value is not None:
+                    if unit == '℃':
+                        value = f'{value:.1f}'
                     by_ent.setdefault(ent, []).append(f'{value}{unit}')
             for ent, parts in by_ent.items():
                 desc = ' '.join(parts)

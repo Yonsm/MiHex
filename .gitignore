@@ -1,6 +1,7 @@
 # Configuration & secrets
 conf.yaml
 .mi.token
+.miot_specs.json
 
 # Certificates & private keys
 *.key
