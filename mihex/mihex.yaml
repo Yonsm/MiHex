@@ -213,3 +213,11 @@ server:
 tracker:
   # fast: 60
   # slow: 3600
+
+# scene:
+#   - name: 温度过低自动开地暖         # 可选，仅用于日志
+#     when: { entity: 客厅温度, attr: STAT, below: 18 }
+#     then: [[客厅地暖, on_turn, 1]]
+#   - name: 每天8点开新风机
+#     when: { at: '08:00' }           # 也支持 at: ['08:00', '20:00'] 或 cron: '0 8 * * *'
+#     then: [[客厅新风机, on_turn, 1]]

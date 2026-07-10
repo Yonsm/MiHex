@@ -27,6 +27,7 @@ Unified device management via MQTT, MiIO, Broadlink and other protocols, with a 
 - **DingTalk** — DingTalk bot message push
 - **Voice Gateway** — Xiaomi LAN gateway voice command forwarding
 - **Device Tracking** — periodic polling; auto fast-mode when WebSocket connected
+- **Scenes/Automation** — fire a set of actions on a time (cron-style) or device state-change trigger; actions reuse the existing entity call format, no new syntax to learn
 
 ## Installation
 
@@ -102,6 +103,7 @@ Copy `conf.yaml.example` to `conf.yaml` and edit as needed. Configuration sectio
 | `shell` | SSH/Shell command control |
 | `modbus` | Modbus TCP host address and coil/register mapping |
 | `saswell` | Saswell thermostat address and device ID |
+| `scene` | Scene/automation rules: time (`at`/`cron`) or device state-change (`entity`+`attr`+`below`/`above`/`equals`/`not_equals`/`changed`) triggers; `then` reuses the same `[EntityName, Method, arg...]` call format as the dashboard/CLI |
 | `runner` | Command templates, `{{}}` for dynamic variables |
 | `tracker` | Polling intervals (`fast` 60s / `slow` 3600s)|
 

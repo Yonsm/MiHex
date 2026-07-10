@@ -27,6 +27,7 @@ MIni Home EXecutor — 轻量级智能家居管理服务，支持 macOS、Linux�
 - **钉钉** — 钉钉机器人推送消息
 - **语音网关** — 米家局域网网关语音指令转发
 - **设备追踪** — 定时轮询，WebSocket 连接时自动快速模式
+- **场景/自动化** — 定时（cron 风格）或设备状态变化触发一组动作，动作复用现有的实体调用格式，无需额外语法
 
 ## 安装
 
@@ -102,6 +103,7 @@ mihex 设备名称 MiIO命令
 | `shell` | SSH/Shell 命令控制 |
 | `modbus` | Modbus TCP 主机地址及线圈/寄存器映射 |
 | `saswell` | 赛沃地暖温控器地址及设备 ID |
+| `scene` | 场景/自动化规则：定时（`at`/`cron`）或设备状态变化（`entity`+`attr`+`below`/`above`/`equals`/`not_equals`/`changed`）触发，`then` 复用与仪表盘/CLI 相同的 `[实体名, 方法, 参数...]` 调用格式 |
 | `runner` | 命令模板，`{{}}` 嵌入动态变量 |
 | `tracker` | 轮询间隔（`fast` 60s / `slow` 3600s）|
 
