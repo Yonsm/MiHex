@@ -53,6 +53,12 @@ class ModbusEntity(Entity):
         return list(self._mods.values())
 
     def reset(self):
+        """Reboot the Modbus-TCP gateway via its proprietary reset frame.
+
+        Not part of standard Modbus; this raw byte sequence is a vendor-specific
+        command observed on the gateway hardware this module targets, sent over
+        a plain TCP connection (bypassing the pymodbus/RTU-over-TCP framing).
+        """
         _LOG.warning("Reset")
         import socket
         import time
@@ -64,12 +70,23 @@ class ModbusEntity(Entity):
         time.sleep(1)
 
     def reconn(self):
+        """Force the shared Modbus client to re-establish its TCP connection."""
         _LOG.warning("Reconnect")
+        _hub.close()
 
     def exception(self):
+        """Escalating recovery on repeated read failures.
+
+        `_error` counts consecutive failed update() cycles; `turns` advances
+        one step every 4 failures. For the first 6 turns (~24 failures) every
+        turn attempts a reconnect, with a full gateway reset thrown in every
+        3rd turn. Beyond that the gateway is likely down rather than glitchy,
+        so recovery backs off to once every 10 turns (~40 failures) to avoid
+        hammering it, still resetting every 3rd of those turns.
+        """
         turns = self._error // 4
         self._error += 1
-        if turns != 0 and (turns > 6 and turns % 10):
+        if turns != 0 and turns > 6 and turns % 10:
             return
         if turns % 3 == 0:
             self.reset()
