@@ -8,6 +8,8 @@ WebSocket broadcast. No external dependencies required.
 from json import loads, dumps
 from asyncio import Queue, get_running_loop, start_server, IncompleteReadError
 from os.path import join, isfile, splitext, normpath, dirname, abspath, commonpath
+from os import stat
+from email.utils import formatdate
 from http import HTTPStatus
 from hashlib import sha1
 from base64 import b64encode, b64decode
@@ -241,9 +243,18 @@ class WebServer:
                 www = join(dirname(abspath(__file__)), 'www')
                 fp = normpath(join(www, url_path.lstrip('/')))
                 if commonpath([fp, www]) == www and isfile(fp):
-                    ext = splitext(fp)[1].lower()
                     with open(fp, 'rb') as f:
-                        respond(200, f.read(), _MIME.get(ext, 'application/octet-stream'))
+                        body = f.read()
+                    # mtime 复验：内容/时间没变 -> 304 不重下 body，变了 -> 200 立刻生效
+                    ext = splitext(fp)[1].lower()
+                    etag = '"' + sha1(body).hexdigest() + '"'
+                    lm = formatdate(stat(fp).st_mtime, usegmt=True)
+                    hit = headers.get('if-none-match') == etag or headers.get('if-modified-since') == lm
+                    head = (f'HTTP/1.1 {"304" if hit else "200"} {"Not Modified" if hit else "OK"}\r\n'
+                            + ('' if hit else f'Content-Type: {_MIME.get(ext, "application/octet-stream")}\r\nContent-Length: {len(body)}\r\n')
+                            + f'ETag: {etag}\r\nLast-Modified: {lm}\r\n'
+                            + 'Cache-Control: no-cache\r\nConnection: close\r\n\r\n')
+                    writer.write(head.encode('iso-8859-1') + (b'' if hit else body))
                 else:
                     respond(404, 'Not Found')
         except Exception as e:
