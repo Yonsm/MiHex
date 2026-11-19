@@ -5,7 +5,9 @@
 [![PyPI](https://img.shields.io/pypi/v/mihex)](https://pypi.org/project/mihex/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**版本**：v1.2.4（[更新日志](CHANGELOG.md)）
+**版本**：v1.2.4（已冻结，[更新日志](../CHANGELOG.md)）
+
+> 本目录是已冻结的 Python 实现（PyPI 包 `mihex`），仅修复严重问题。Go 重写版（v1.5）是主开发线，见 [README](../README.md)。
 
 MIni Home EXecutor — 轻量级智能家居管理服务，支持 macOS、Linux、OpenWrt、MiWiFi。
 
@@ -64,7 +66,7 @@ sh setup.sh
 
 ```sh
 pip3 install -r requirements.txt
-cp mihex/conf.yaml.example conf.yaml
+cp mihex/mihex.yaml mihex.yaml
 ```
 
 </details>
@@ -72,8 +74,8 @@ cp mihex/conf.yaml.example conf.yaml
 ## 使用
 
 ```sh
-mihex                         # 当前目录 conf.yaml
-mihex -c /path/to/conf.yaml  # 指定配置
+mihex                         # 当前目录 mihex.yaml
+mihex -c /path/to/mihex.yaml  # 指定配置
 python -m mihex               # 等效
 
 mihex -v5                     # 详细日志（-v0~5）
@@ -88,7 +90,7 @@ mihex 设备名称 MiIO命令
 
 ## 配置
 
-复制 `conf.yaml.example` 为 `conf.yaml`，按需编辑。配置段：
+复制 `mihex/mihex.yaml` 为 `mihex.yaml`，按需编辑。配置段：
 
 | 配置段 | 说明 |
 |--------|------|
@@ -140,9 +142,9 @@ mihex/
 ## 架构
 
 ```
-                                               ┌───────────┐
-                                               │ conf.yaml │
-                                               └───────────┘
+                                               ┌────────────┐
+                                               │ mihex.yaml │
+                                               └────────────┘
                                                      │
                                                      ▼
                                   ┌────────┐   ┌────────────────────────┐
@@ -171,7 +173,7 @@ mihex/
                                   └─────────────────────┘
 ```
 
-`loader` 按 `conf.yaml` 的配置段依次加载：先加载各个业务模块（`mqtt`/`miio`/`broadlink`/… 或 `customs/` 下的同名脚本），每个模块的 `setup(conf)` 返回若干 `Entity` 实例并注册进全局列表 `_OBJS`；随后固定加载内置的 `server`、`runner`、`tracker` 三个模块；`server` 通过 WebSocket 与浏览器仪表盘双向通信。
+`loader` 按 `mihex.yaml` 的配置段依次加载：先加载各个业务模块（`mqtt`/`miio`/`broadlink`/… 或 `customs/` 下的同名脚本），每个模块的 `setup(conf)` 返回若干 `Entity` 实例并注册进全局列表 `_OBJS`；随后固定加载内置的 `server`、`runner`、`tracker` 三个模块；`server` 通过 WebSocket 与浏览器仪表盘双向通信。
 
 - **加载**：`_OBJS` 是贯穿全局的注册表，混合存放模块对象与 `Entity` 实例，`runner.dispatch()` 按 `NAME` 属性在其中查找目标
 - **轮询**：`tracker` 遍历 `_OBJS` 中带 `update()` 方法的对象，状态变化时通过 `server.send_state()` 推送给所有 WebSocket 客户端；无连接时轮询间隔为 `slow`（默认 3600s），有连接时自动切到 `fast`（默认 60s）
@@ -181,7 +183,7 @@ mihex/
 
 ## 自定义模块
 
-在 `conf.yaml` 同级目录下新建 `customs/<配置段名>.py`，实现 `setup(conf)`（存在同名自定义文件时优先于内置模块加载）：
+在 `mihex.yaml` 同级目录下新建 `customs/<配置段名>.py`，实现 `setup(conf)`（存在同名自定义文件时优先于内置模块加载）：
 
 ```python
 from mihex.entity import Entity
@@ -199,12 +201,12 @@ class MyEntity(Entity):
         await super().on_turn(arg)
 ```
 
-在 `conf.yaml` 中添加同名配置段即可自动加载。
+在 `mihex.yaml` 中添加同名配置段即可自动加载。
 
 ## 安全建议
 
 - `server.token` 鉴权基于 HTTP Basic / URL query 参数，未配置 `key`/`cert` 时以明文 HTTP 传输。设计定位是可信局域网内使用；若需公网访问，请务必配置 `key`/`cert` 启用 HTTPS，或放在已有 VPN/反向代理之后。
-- `conf.yaml`（含账号密码、Token 等敏感信息）与运行时生成的 `.mi.token`（小米云 session 缓存）、`.miot_specs.json`（MIoT spec 本地缓存，不含敏感信息，删除后会自动重新拉取）已在 `.gitignore` 中，注意不要手动提交。
+- `mihex.yaml`（含账号密码、Token 等敏感信息）与运行时生成的 `.mi.token`（小米云 session 缓存）、`.miot_specs.json`（MIoT spec 本地缓存，不含敏感信息，删除后会自动重新拉取）已在 `.gitignore` 中，注意不要手动提交。
 
 ## 致谢
 

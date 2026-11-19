@@ -15,7 +15,7 @@ def usage():
 Mini Home executive {__version__}
 
 Usage:
-   %s [-v|-c conf.yaml] [ENTITY] [arg1] [arg2] [...]
+   %s [-v|-c mihex.yaml] [ENTITY] [arg1] [arg2] [...]
 
    %s MQTT <Topic> [Message]
    %s DING <Message>

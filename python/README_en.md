@@ -5,7 +5,9 @@
 [![PyPI](https://img.shields.io/pypi/v/mihex)](https://pypi.org/project/mihex/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**Version**: v1.2.4 ([Changelog](CHANGELOG.md))
+**Version**: v1.2.4 (frozen, [Changelog](../CHANGELOG.md))
+
+> This directory holds the frozen Python implementation (PyPI package `mihex`), receiving only critical fixes. The Go rewrite (v1.5) is the mainline — see [README](../README.md).
 
 MIni Home EXecutor — a lightweight smart home management service for macOS, Linux, OpenWrt, and MiWiFi.
 
@@ -64,7 +66,7 @@ sh setup.sh
 
 ```sh
 pip3 install -r requirements.txt
-cp mihex/conf.yaml.example conf.yaml
+cp mihex/mihex.yaml mihex.yaml
 ```
 
 </details>
@@ -72,8 +74,8 @@ cp mihex/conf.yaml.example conf.yaml
 ## Usage
 
 ```sh
-mihex                         # conf.yaml in current directory
-mihex -c /path/to/conf.yaml  # specify config
+mihex                         # mihex.yaml in current directory
+mihex -c /path/to/mihex.yaml  # specify config
 python -m mihex               # equivalent
 
 mihex -v5                     # verbose logging (-v0~5)
@@ -88,7 +90,7 @@ After launch, visit `http://<IP>:<port>/` to open the dashboard.
 
 ## Configuration
 
-Copy `conf.yaml.example` to `conf.yaml` and edit as needed. Configuration sections:
+Copy `mihex/mihex.yaml` to `mihex.yaml` and edit as needed. Configuration sections:
 
 | Section | Description |
 |---------|-------------|
@@ -140,9 +142,9 @@ mihex/
 ## Architecture
 
 ```
-                                               ┌───────────┐
-                                               │ conf.yaml │
-                                               └───────────┘
+                                               ┌────────────┐
+                                               │ mihex.yaml │
+                                               └────────────┘
                                                      │
                                                      ▼
                                   ┌────────┐   ┌────────────────────────┐
@@ -171,7 +173,7 @@ mihex/
                                   └─────────────────────┘
 ```
 
-`loader` loads config sections from `conf.yaml` in order: feature modules first (`mqtt`/`miio`/`broadlink`/… or same-named scripts under `customs/`) — each module's `setup(conf)` returns `Entity` instances that get registered into the global `_OBJS` list — followed by the three built-in modules `server`, `runner`, and `tracker`; `server` talks to the browser dashboard bidirectionally over WebSocket.
+`loader` loads config sections from `mihex.yaml` in order: feature modules first (`mqtt`/`miio`/`broadlink`/… or same-named scripts under `customs/`) — each module's `setup(conf)` returns `Entity` instances that get registered into the global `_OBJS` list — followed by the three built-in modules `server`, `runner`, and `tracker`; `server` talks to the browser dashboard bidirectionally over WebSocket.
 
 - **Loading**: `_OBJS` is the global registry mixing module objects and `Entity` instances; `runner.dispatch()` looks up the target by its `NAME` attribute
 - **Polling**: `tracker` iterates every object in `_OBJS` that has an `update()` method, pushing state changes via `server.send_state()` to all WebSocket clients. Interval is `slow` (3600s default) with no client connected, and automatically switches to `fast` (60s default) once one connects
@@ -181,7 +183,7 @@ mihex/
 
 ## Custom Module
 
-Create `customs/<section_name>.py` next to `conf.yaml`, implementing `setup(conf)` (a custom file takes precedence over a built-in module with the same name):
+Create `customs/<section_name>.py` next to `mihex.yaml`, implementing `setup(conf)` (a custom file takes precedence over a built-in module with the same name):
 
 ```python
 from mihex.entity import Entity
@@ -199,12 +201,12 @@ class MyEntity(Entity):
         await super().on_turn(arg)
 ```
 
-Add a same-named config section in `conf.yaml` and it will be auto-loaded.
+Add a same-named config section in `mihex.yaml` and it will be auto-loaded.
 
 ## Security Notes
 
 - `server.token` auth is based on HTTP Basic / URL query parameter, and is transmitted in plain HTTP unless `key`/`cert` are configured. It's designed for use on a trusted LAN; if you need remote access, configure `key`/`cert` to enable HTTPS, or put it behind an existing VPN/reverse proxy.
-- `conf.yaml` (account passwords, tokens, etc.), the runtime-generated `.mi.token` (Xiaomi cloud session cache), and `.miot_specs.json` (local MIoT spec cache — holds no sensitive data, safe to delete to force a refresh) are already listed in `.gitignore` — avoid committing them manually.
+- `mihex.yaml` (account passwords, tokens, etc.), the runtime-generated `.mi.token` (Xiaomi cloud session cache), and `.miot_specs.json` (local MIoT spec cache — holds no sensitive data, safe to delete to force a refresh) are already listed in `.gitignore` — avoid committing them manually.
 
 ## Acknowledgements
 

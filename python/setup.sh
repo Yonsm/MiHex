@@ -31,9 +31,9 @@ EOF
 #mosquitto -d -c mosquitto.conf
 
 # ── Configuration file ──
-if [ ! -f conf.yaml ]; then
-	cp mihex/conf.yaml.example conf.yaml
-	echo "Generated conf.yaml — please edit it before running: mihex"
+if [ ! -f mihex.yaml ]; then
+	cp mihex/mihex.yaml mihex.yaml
+	echo "Generated mihex.yaml — please edit it before running: mihex"
 fi
 
 # ── Clean up pip cache ──

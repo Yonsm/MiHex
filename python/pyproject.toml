@@ -52,4 +52,4 @@ where = ["."]
 include = ["mihex*"]
 
 [tool.setuptools.package-data]
-mihex = ["www/*", "conf.yaml.example", "modules/codes/*.yaml"]
+mihex = ["www/*", "mihex.yaml", "modules/codes/*.yaml"]

@@ -1,6 +1,6 @@
 # MiHex 配置示例
-# 复制此文件为 conf.yaml 并填入你的设备配置。
-#   cp conf.yaml.example conf.yaml
+# 复制此文件为 mihex.yaml 并填入你的设备配置。
+#   cp mihex/mihex.yaml mihex.yaml
 
 # runner:
 #   环境概况: 室内PM2.5为{{MQTT device/zm1/b0f893249132/sensor.PM25}}，温度为{{MQTT device/zm1/b0f893249132/sensor.temperature}}，CO2为客厅{{客厅新风机 co2}}/主卧{{主卧新风机 3-4}}/儿童房{{MQTT JingHuaQi4/co2}}。室外PM2.5为{{MQTT ChuanGanQi/pm2dot5}}，温度为{{MQTT ChuanGanQi/temperature}}。{{天气}}

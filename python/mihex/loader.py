@@ -1,6 +1,6 @@
 """Dynamic module loader for MiHex.
 
-Reads conf.yaml and loads each module from the .modules package or from a
+Reads mihex.yaml and loads each module from the .modules package or from a
 customs/ directory alongside the config file. Built-in modules (runner,
 server, tracker) are loaded last to ensure all entities are registered first.
 """
