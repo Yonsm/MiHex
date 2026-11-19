@@ -1,0 +1,109 @@
+# MiHex 默认配置样板
+#
+# 加载顺序：-c 指定 > 当前目录 mihex.yml > ~/.mihex.yml > 可执行文件所在目录 mihex.yml
+# 本文件可直接运行，提供一个最小可用实例：仪表盘、天气、本机在线状态。
+# 个人配置（账号、Token 等）建议放到 ~/.mihex.yml 或用 -c 指定，避免提交到仓库。
+# 模块按配置段的书写顺序加载，删除或注释掉某段即停用对应功能。
+
+server:
+  bind: 0.0.0.0
+  port: 888
+  # token: your_token           # 设置后访问需 HTTP Basic 认证（密码填 token，用户名任意）
+  # host: home.example.com      # 对外主机名（DDNS 等），仅用于日志展示
+  # key: /root/cert.key
+  # cert: /root/cert.crt
+  link:
+    - NAME: 路由器
+      ICON: router-wireless
+      LINK: http://192.168.1.1/
+    - NAME: 状态
+      ICON: code-braces
+      LINK: /states
+    - NAME: 对象
+      ICON: opera
+      LINK: /objects
+    - NAME: 重新载入
+      ICON: reload
+      LINK: 'location.reload(true)'
+    # TITL: 米和智家             # 仪表盘标题
+
+weather:
+  location: 120.15,30.28         # 彩云天气坐标（经度,纬度），默认杭州
+  # api_key: YOUR_CAIYUN_API_KEY # 不填则使用内置 Key
+
+ping:
+  - NAME: 本机
+    ICON: laptop
+    DESC: 默认样板示例
+    host: 127.0.0.1
+
+tracker:
+  fast: 60
+  slow: 3600
+
+# ---- 以下模块按需启用，默认保持注释，避免无谓的连接失败告警 ----
+
+# ding:
+#   token: YOUR_DINGTALK_TOKEN
+#   secret: YOUR_DINGTALK_SECRET
+
+# gate:
+#   host: localhost
+#   port: 8884
+
+# mqtt:
+#   host: localhost
+#   port: 1883
+#   topic: '#'
+#   sensor:
+#     - NAME: 餐厅温度
+#       UNIT: ℃
+#       stat: device/zm1/b0f893249132/sensor
+#       json: temperature
+#   switch:
+#     - NAME: 餐厅灯
+#       stat: device/zm1/b0f893249132/switch
+#       json: power
+
+# miio:
+#   user: YOUR_MIIO_ACCOUNT
+#   pass: YOUR_MIIO_PASSWORD
+#   auto: true                   # 自动发现全部未配置设备；也可填家庭名或设备名列表
+#   书区台灯:
+#     TYPE: light
+#     ICON: lamp
+
+# broadlink:
+#   - NAME: 呼吸机
+#     ICON: head-flash
+#     type: 30014
+#     host: 192.168.1.82
+#     mac: 34ea34b836ac
+#   - type: 10141
+#     host: 192.168.1.53
+#     mac: 34ea3458735d
+#     cover:
+#       - NAME: 书房窗帘
+#         code: 杜亚窗帘
+
+# shell:
+#   switch:
+#     - NAME: 小雅
+#       ICON: google-drive
+#       DESC: 聚合网盘
+#       EXEC: http://server.example.com:5678/
+#       stat: [ssh, -p, '222', server.example.com, 'docker inspect -f "{{json .State.Running}}" alist']
+#       ison: 'true'
+#       toon: [ssh, -p, '222', server.example.com, 'docker start alist']
+#       toff: [ssh, -p, '222', server.example.com, 'docker stop alist']
+
+# scene:
+#   - name: 温度过低自动开地暖
+#     when: {entity: 客厅温度, attr: STAT, below: 18}
+#     then: [[客厅地暖, on_turn, 1]]
+#   - name: 每天 8 点开新风机
+#     when: {at: '08:00'}         # 也支持 at: ['08:00', '20:00'] 或 cron: '0 8 * * *'
+#     then: [[客厅新风机, on_turn, 1]]
+
+# runner:
+#   环境概况: 室内温度为{{客厅温度 STAT}}，室外{{天气}}
