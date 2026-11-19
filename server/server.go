@@ -110,6 +110,12 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			unauthorized(w)
 			return
 		}
+		if wantsHTML(r) {
+			list := r.Clone(r.Context())
+			list.URL.Path = "/list.htm"
+			serveStatic(w, list)
+			return
+		}
 		go core.Track(context.Background())
 		r, err := fn(nil)
 		writeJSON(w, r, err)
@@ -143,6 +149,11 @@ func authed(r *http.Request) bool {
 		pass = user
 	}
 	return subtle.ConstantTimeCompare([]byte(pass), []byte(token)) == 1
+}
+
+// wantsHTML 判断是否为浏览器导航请求；是则把服务接口渲染成列表页，API 调用仍返回 JSON。
+func wantsHTML(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "text/html")
 }
 
 func writeJSON(w http.ResponseWriter, v any, err error) {

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+	<head>
+		<title>MiHex</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark" />
+		<link rel="apple-touch-icon" href="/dash.png" />
+		<link rel="icon" href="/dash.png" />
+		<link href="mdi.css" rel="stylesheet" />
+		<style>
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				background: #0d1117;
+				color: #e6edf3;
+				font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+			}
+
+			header {
+				position: sticky;
+				top: 0;
+				z-index: 1;
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 8px 12px;
+				padding: 10px 16px;
+				background: rgba(13, 17, 23, 0.92);
+				border-bottom: 1px solid #21262d;
+				backdrop-filter: blur(8px);
+			}
+
+			h1 {
+				margin: 0;
+				font-size: 17px;
+				font-weight: 600;
+			}
+
+			.back {
+				display: flex;
+				color: #8b949e;
+				font-size: 20px;
+				text-decoration: none;
+			}
+
+			.count {
+				color: #8b949e;
+				font-size: 12px;
+				font-variant-numeric: tabular-nums;
+			}
+
+			#q {
+				flex: 1 1 160px;
+				max-width: 320px;
+				margin-left: auto;
+				padding: 5px 10px;
+				color: inherit;
+				font: inherit;
+				background: #161b22;
+				border: 1px solid #30363d;
+				border-radius: 6px;
+				outline: none;
+			}
+
+			#q:focus {
+				border-color: #009688;
+			}
+
+			.refresh {
+				display: flex;
+				padding: 4px;
+				color: #8b949e;
+				font-size: 18px;
+				background: none;
+				border: 0;
+				cursor: pointer;
+			}
+
+			.status {
+				min-width: 76px;
+				color: #8b949e;
+				font-size: 12px;
+				font-variant-numeric: tabular-nums;
+			}
+
+			.status.error {
+				color: #e91e63;
+			}
+
+			main {
+				padding: 8px 16px 40px;
+			}
+
+			table {
+				width: 100%;
+				min-width: 680px;
+				border-collapse: collapse;
+				font-size: 13px;
+			}
+
+			th {
+				padding: 8px 10px;
+				color: #8b949e;
+				font-weight: 500;
+				text-align: left;
+				white-space: nowrap;
+				border-bottom: 1px solid #30363d;
+				cursor: pointer;
+				user-select: none;
+			}
+
+			th:hover {
+				color: #e6edf3;
+			}
+
+			td {
+				padding: 8px 10px;
+				vertical-align: top;
+				border-bottom: 1px solid #21262d;
+			}
+
+			tbody tr:hover {
+				background: #161b22;
+			}
+
+			td.name {
+				white-space: nowrap;
+			}
+
+			td.name .mdi {
+				margin-right: 6px;
+				color: #8b949e;
+				font-size: 16px;
+				vertical-align: -2px;
+			}
+
+			.chip {
+				display: inline-block;
+				padding: 0 8px;
+				color: #c9d1d9;
+				font-size: 12px;
+				line-height: 18px;
+				white-space: nowrap;
+				background: #30363d;
+				border-radius: 10px;
+			}
+
+			.chip[data-type="weather"],
+			.chip[data-type="sensor"] {
+				background: #00bcd4;
+				color: #04212a;
+			}
+
+			.chip[data-type="binary"] {
+				background: #03a9f4;
+				color: #04212a;
+			}
+
+			.chip[data-type="device"] {
+				background: #2196f3;
+				color: #041426;
+			}
+
+			.chip[data-type="camera"],
+			.chip[data-type="link"] {
+				background: #455a64;
+				color: #eceff1;
+			}
+
+			.chip[data-type="light"],
+			.chip[data-type="switch"],
+			.chip[data-type="player"],
+			.chip[data-type="vacuum"],
+			.chip[data-type="washer"] {
+				background: #ff8000;
+				color: #2b1500;
+			}
+
+			.chip[data-type="cover"] {
+				background: #ff7000;
+				color: #2b1300;
+			}
+
+			.chip[data-type="fan"],
+			.chip[data-type="purifier"] {
+				background: #8bc34a;
+				color: #14230a;
+			}
+
+			.chip[data-type="climate"] {
+				background: #609735;
+				color: #eef7e6;
+			}
+
+			.chip[data-type="thermostat"] {
+				background: #499738;
+				color: #eef7e6;
+			}
+
+			.stat {
+				font-size: 15px;
+				font-weight: 600;
+			}
+
+			.stat small {
+				margin-left: 2px;
+				color: #8b949e;
+				font-size: 11px;
+				font-weight: 400;
+			}
+
+			.stat.caution {
+				color: #ffd835;
+			}
+
+			.stat.critical {
+				color: #e91e63;
+			}
+
+			td.desc {
+				max-width: 420px;
+				color: #8b949e;
+			}
+
+			code {
+				padding: 1px 5px;
+				color: #79c0ff;
+				font-size: 12px;
+				background: #161b22;
+				border-radius: 4px;
+			}
+
+			a {
+				color: #58a6ff;
+				text-decoration: none;
+			}
+
+			a:hover {
+				text-decoration: underline;
+			}
+
+			.empty {
+				padding: 48px 0;
+				color: #8b949e;
+				text-align: center;
+			}
+
+			@media (max-width: 640px) {
+				.status {
+					display: none;
+				}
+
+				td.desc {
+					max-width: 220px;
+				}
+			}
+		</style>
+	</head>
+
+	<body>
+		<header>
+			<a class="back" href="/" title="返回仪表盘"><i class="mdi mdi-arrow-left"></i></a>
+			<h1 id="title">状态</h1>
+			<span id="count" class="count"></span>
+			<input id="q" type="search" placeholder="过滤名称、类型或值" autocomplete="off" spellcheck="false" />
+			<button id="refresh" class="refresh" title="刷新"><i class="mdi mdi-refresh"></i></button>
+			<span id="status" class="status"></span>
+		</header>
+		<main>
+			<table id="tbl" hidden>
+				<thead>
+					<tr id="head"></tr>
+				</thead>
+				<tbody id="body"></tbody>
+			</table>
+			<div id="empty" class="empty">加载中…</div>
+		</main>
+		<script>
+			(function () {
+				var path = location.pathname;
+				var search = location.search;
+				var isObjects = /\/objects\/?$/.test(path);
+				var title = isObjects ? '对象' : '状态';
+				var FIXED = ['NAME', 'TYPE', 'STAT', 'DESC', 'LINK'];
+				var LABELS = {
+					NAME: '名称', TYPE: '类型', STAT: '状态', DESC: '描述', LINK: '链接',
+					MODE: '模式', MODS: '选项', ISON: '开关', TOGL: '左调', TOGR: '右调',
+					TUNE: '调节', EXEC: '执行', ICON: '图标', BGND: '背景', TITL: '标题', UNIT: '单位'
+				};
+				var RANGES = {
+					'aqi': [40, 70],
+					'co₂': [900, 1600],
+					'℃': [30, 38],
+					'%': [72, 82],
+					'hcho': [0.08, 0.2],
+					'lx': [1000, 1500]
+				};
+
+				var data = [];
+				var cols = [];
+				var sortKey = null;
+				var sortAsc = true;
+				var lastJSON = '';
+				var loading = false;
+
+				var $ = function (id) { return document.getElementById(id); };
+				var titleEl = $('title'), countEl = $('count'), qEl = $('q');
+				var headEl = $('head'), bodyEl = $('body'), tblEl = $('tbl');
+				var emptyEl = $('empty'), statusEl = $('status');
+
+				document.title = title + ' · MiHex';
+				titleEl.textContent = title;
+				document.querySelector('.back').href = '/' + search;
+
+				function esc(s) {
+					return String(s).replace(/[&<>"']/g, function (c) {
+						return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+					});
+				}
+
+				function val(v) {
+					if (v == null) return '';
+					if (typeof v === 'boolean') return v ? '开' : '关';
+					if (typeof v === 'object') {
+						try { return JSON.stringify(v); } catch (e) { return String(v); }
+					}
+					return String(v);
+				}
+
+				function columns(rows) {
+					var set = {};
+					rows.forEach(function (r) {
+						for (var k in r) {
+							if (r[k] !== null && r[k] !== '') set[k] = true;
+						}
+					});
+					var fixed = FIXED.filter(function (k) { return set[k]; });
+					var rest = Object.keys(set).filter(function (k) { return fixed.indexOf(k) < 0; }).sort();
+					return fixed.concat(rest);
+				}
+
+				function cell(row, key) {
+					var v = row[key];
+					if (key === 'NAME') {
+						var icon = row.ICON ? '<i class="mdi mdi-' + esc(row.ICON) + '"></i>' : '';
+						return icon + esc(val(v));
+					}
+					if (key === 'TYPE') {
+						return v == null ? '' : '<span class="chip" data-type="' + esc(v) + '">' + esc(v) + '</span>';
+					}
+					if (key === 'STAT') {
+						if (v == null || v === '') return '';
+						var cls = '';
+						var range = RANGES[row.UNIT];
+						if (range && typeof v === 'number') {
+							if (v >= range[1]) cls = ' critical';
+							else if (v >= range[0]) cls = ' caution';
+						}
+						var unit = row.UNIT ? '<small>' + esc(row.UNIT) + '</small>' : '';
+						return '<span class="stat' + cls + '">' + esc(val(v)) + unit + '</span>';
+					}
+					if (key === 'LINK' && typeof v === 'string') {
+						if (/^(https?:)?\/\//.test(v)) {
+							return '<a href="' + esc(v) + '" target="_blank" rel="noopener">' + esc(v) + '</a>';
+						}
+						if (v.charAt(0) === '/') {
+							return '<a href="' + esc(v.indexOf('?') < 0 ? v + search : v) + '">' + esc(v) + '</a>';
+						}
+						return '<code>' + esc(v) + '</code>';
+					}
+					var s = val(v);
+					if (s.length > 120) {
+						return '<span title="' + esc(s) + '">' + esc(s.slice(0, 120)) + '…</span>';
+					}
+					return esc(s);
+				}
+
+				function cmp(a, b) {
+					if (sortKey) {
+						var x = a[sortKey], y = b[sortKey];
+						var r = (typeof x === 'number' && typeof y === 'number') ? x - y : val(x).localeCompare(val(y), 'zh');
+						return sortAsc ? r : -r;
+					}
+					return val(a.TYPE).localeCompare(val(b.TYPE)) || val(a.NAME).localeCompare(val(b.NAME), 'zh');
+				}
+
+				function render() {
+					var q = qEl.value.trim().toLowerCase();
+					var rows = data.filter(function (r) {
+						if (!q) return true;
+						return cols.some(function (k) { return val(r[k]).toLowerCase().indexOf(q) >= 0; });
+					});
+					rows.sort(cmp);
+					countEl.textContent = q ? rows.length + ' / ' + data.length : data.length + ' 项';
+
+					headEl.innerHTML = cols.map(function (k) {
+						var arrow = sortKey === k ? (sortAsc ? ' ▲' : ' ▼') : '';
+						return '<th data-k="' + esc(k) + '">' + esc(LABELS[k] || k) + arrow + '</th>';
+					}).join('');
+					bodyEl.innerHTML = rows.map(function (r) {
+						return '<tr>' + cols.map(function (k) {
+							return '<td class="' + esc(k.toLowerCase()) + '">' + cell(r, k) + '</td>';
+						}).join('') + '</tr>';
+					}).join('');
+
+					tblEl.hidden = !rows.length;
+					emptyEl.textContent = data.length ? '没有匹配项' : '暂无数据';
+					emptyEl.style.display = rows.length ? 'none' : 'block';
+				}
+
+				function load() {
+					if (loading) return;
+					loading = true;
+					fetch(path + search, { cache: 'no-store', headers: { Accept: 'application/json' } }).then(function (r) {
+						if (r.status === 401) throw new Error('未授权，请从仪表盘进入');
+						if (!r.ok) throw new Error('HTTP ' + r.status);
+						return r.json();
+					}).then(function (json) {
+						if (!Array.isArray(json)) throw new Error('数据格式错误');
+						var s = JSON.stringify(json);
+						if (s !== lastJSON) {
+							lastJSON = s;
+							data = json;
+							cols = columns(data);
+							render();
+						}
+						statusEl.textContent = '已更新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+						statusEl.className = 'status';
+					}).catch(function (e) {
+						statusEl.textContent = e.message;
+						statusEl.className = 'status error';
+						if (!lastJSON) emptyEl.textContent = e.message;
+					}).then(function () {
+						loading = false;
+					});
+				}
+
+				headEl.addEventListener('click', function (e) {
+					var th = e.target.closest('th');
+					if (!th) return;
+					var k = th.getAttribute('data-k');
+					if (sortKey === k) sortAsc = !sortAsc;
+					else { sortKey = k; sortAsc = true; }
+					render();
+				});
+				qEl.addEventListener('input', render);
+				$('refresh').addEventListener('click', load);
+				document.addEventListener('visibilitychange', function () {
+					if (!document.hidden) load();
+				});
+
+				load();
+				setInterval(function () { if (!document.hidden) load(); }, 5000);
+			})();
+		</script>
+	</body>
+
+</html>

@@ -198,6 +198,8 @@ function makeTile(ent) {
 }
 
 function makeLink(link) {
+	if (link.charAt(0) == '/' && link.indexOf('?') < 0)
+		link += location.search
 	return link.startsWith('/') || link.substring(0, 50).includes('://') ? 'location="' + esc(link) + '"' : link
 }
 
