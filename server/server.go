@@ -116,7 +116,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 			serveStatic(w, list)
 			return
 		}
-		go core.Track(context.Background())
+		core.Wake()
 		r, err := fn(nil)
 		writeJSON(w, r, err)
 		return
@@ -133,7 +133,7 @@ func authed(r *http.Request) bool {
 	if token == "" {
 		return true
 	}
-	if r.URL.RawQuery == token {
+	if subtle.ConstantTimeCompare([]byte(r.URL.RawQuery), []byte(token)) == 1 {
 		return true
 	}
 	auth := r.Header.Get("Authorization")
@@ -194,7 +194,9 @@ func objects(any) (any, error) {
 }
 
 func execCommand(args []any) (any, error) {
-	return core.Exec(context.Background(), args)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return core.Exec(ctx, args)
 }
 
 func links(sec core.Section) []core.Object {
