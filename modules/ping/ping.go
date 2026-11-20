@@ -10,6 +10,7 @@ import (
 	"net"
 	"os/exec"
 	"reflect"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -39,7 +40,12 @@ type Entity struct {
 }
 
 func (e *Entity) Update(ctx context.Context) (bool, error) {
-	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-W", "1", e.Str("host"))
+	host := e.Str("host")
+	waitFlag := "1"
+	if runtime.GOOS == "darwin" {
+		waitFlag = "1000"
+	}
+	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-W", waitFlag, "--", host)
 	err := cmd.Run()
 	var ison any
 	if err == nil {
@@ -82,7 +88,8 @@ func (e *Entity) Call(ctx context.Context, method string, args []any) (any, erro
 
 // wake 发送 Wake-on-LAN 魔术包；失败时返回错误说明。
 func (e *Entity) wake() error {
-	mac, err := hex.DecodeString(e.Str("mac"))
+	clean := strings.NewReplacer(":", "", "-", "", " ", "").Replace(e.Str("mac"))
+	mac, err := hex.DecodeString(clean)
 	if err != nil || len(mac) != 6 {
 		return fmt.Errorf("无效 MAC 地址 %q", e.Str("mac"))
 	}
@@ -103,7 +110,7 @@ func (e *Entity) wake() error {
 func (e *Entity) shutdown(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	return exec.CommandContext(ctx, "ssh", e.Str("host"), "poweroff").Run()
+	return exec.CommandContext(ctx, "ssh", "--", e.Str("host"), "poweroff").Run()
 }
 
 func broadcastControl(_, _ string, c syscall.RawConn) error {
