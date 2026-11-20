@@ -100,7 +100,11 @@ func (e *Entity) Update(ctx context.Context) (bool, error) {
 		e.Set("DESC", desc)
 		changed = true
 	}
-	e.stamp = resp.ServerTime
+	if resp.ServerTime > 0 {
+		e.stamp = resp.ServerTime
+	} else {
+		e.stamp = time.Now().Unix()
+	}
 	return changed, nil
 }
 
@@ -118,7 +122,7 @@ func (e *Entity) Call(ctx context.Context, method string, args []any) (any, erro
 }
 
 func fetch(ctx context.Context, location string) (*response, error) {
-	u := fmt.Sprintf("http://api.caiyunapp.com/v2/%s/%s/weather?lang=zh_CN&tzshift=28800&timestamp=%d&hourlysteps=384&dailysteps=16&alert=true&device_id=%012X",
+	u := fmt.Sprintf("https://api.caiyunapp.com/v2/%s/%s/weather?lang=zh_CN&tzshift=28800&timestamp=%d&hourlysteps=384&dailysteps=16&alert=true&device_id=%012X",
 		apiKey, location, time.Now().Unix(), rand.Int63n(1<<48))
 	var resp response
 	err := core.FetchInto(ctx, u, nil, map[string]string{
