@@ -29,8 +29,12 @@ import (
 const version = "1.5.0"
 
 func main() {
-	level, logFile, confPath, rest, help := parseArgs(os.Args[1:])
+	level, logFile, confPath, rest, help, err := parseArgs(os.Args[1:])
 	slog.SetDefault(newLogger(level, logFile))
+	if err != nil {
+		slog.Error("参数错误", "err", err)
+		os.Exit(2)
+	}
 	if help {
 		usage()
 		return
@@ -69,6 +73,9 @@ func main() {
 
 	if !serve {
 		r, err := core.Exec(ctx, toAny(rest))
+		shutCtx, shutCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_ = core.Shutdown(shutCtx)
+		shutCancel()
 		if err != nil {
 			slog.Error("执行失败", "err", err)
 			os.Exit(1)
@@ -99,14 +106,18 @@ func toAny(ss []string) []any {
 	return out
 }
 
-func parseArgs(args []string) (level slog.Level, logFile, conf string, rest []string, help bool) {
+func parseArgs(args []string) (level slog.Level, logFile, conf string, rest []string, help bool, err error) {
 	level = slog.LevelWarn
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		switch {
 		case a == "-h" || a == "--help":
 			help = true
-		case a == "-c" && i+1 < len(args):
+		case a == "-c":
+			if i+1 >= len(args) {
+				err = fmt.Errorf("-c 缺少配置文件路径")
+				return
+			}
 			conf = args[i+1]
 			i++
 		case strings.HasPrefix(a, "-v") || strings.HasPrefix(a, "-V"):
@@ -133,7 +144,7 @@ func logLevel(flag string) slog.Level {
 func newLogger(level slog.Level, file string) *slog.Logger {
 	var w io.Writer = os.Stderr
 	if file != "" {
-		if f, err := os.Create(file); err == nil {
+		if f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600); err == nil {
 			w = f
 		}
 	}
