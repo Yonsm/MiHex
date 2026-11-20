@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	cronInterval  = 60 * time.Second
+	cronInterval  = 15 * time.Second
 	stateInterval = 15 * time.Second
+	actionTimeout = 30 * time.Second
 )
 
 type rule struct {
@@ -53,7 +54,7 @@ func setup(sec core.Section) ([]core.Object, error) {
 		when := core.Map(conf["when"])
 		switch {
 		case when["at"] != nil || when["cron"] != nil:
-			for _, spec := range cronSpecs(when) {
+			for _, spec := range cronSpecs(name, when) {
 				timeRules = append(timeRules, &rule{name: name, spec: spec, actions: actions})
 			}
 		case when["entity"] != nil:
@@ -70,13 +71,17 @@ func setup(sec core.Section) ([]core.Object, error) {
 			slog.Warn("场景触发器无法识别，已跳过", "场景", name)
 		}
 	}
-	if len(timeRules) > 0 {
-		slog.Info("时间规则", "数量", len(timeRules))
-		sec.AfterLoad(func() { go cronLoop() })
-	}
-	if len(stateRules) > 0 {
-		slog.Info("状态规则", "数量", len(stateRules))
-		sec.AfterLoad(func() { go stateLoop() })
+	if len(timeRules) > 0 || len(stateRules) > 0 {
+		ctx, cancel := context.WithCancel(context.Background())
+		core.OnShutdown(func(context.Context) error { cancel(); return nil })
+		if len(timeRules) > 0 {
+			slog.Info("时间规则", "数量", len(timeRules))
+			sec.AfterLoad(func() { go cronLoop(ctx) })
+		}
+		if len(stateRules) > 0 {
+			slog.Info("状态规则", "数量", len(stateRules))
+			sec.AfterLoad(func() { go stateLoop(ctx) })
+		}
 	}
 	return nil, nil
 }
@@ -94,7 +99,7 @@ func normalizeActions(v any) []any {
 	return list
 }
 
-func cronSpecs(when map[string]any) []string {
+func cronSpecs(name string, when map[string]any) []string {
 	if spec := core.Str(when["cron"]); spec != "" {
 		return []string{spec}
 	}
@@ -105,12 +110,18 @@ func cronSpecs(when map[string]any) []string {
 	}
 	specs := make([]string, 0, len(times))
 	for _, t := range times {
-		hh, mm, ok := strings.Cut(core.Str(t), ":")
+		raw := core.Str(t)
+		hh, mm, ok := strings.Cut(raw, ":")
 		if !ok {
+			slog.Warn("场景时间格式无效，已跳过", "场景", name, "at", raw)
 			continue
 		}
-		h, _ := strconv.Atoi(hh)
-		m, _ := strconv.Atoi(mm)
+		h, err1 := strconv.Atoi(strings.TrimSpace(hh))
+		m, err2 := strconv.Atoi(strings.TrimSpace(mm))
+		if err1 != nil || err2 != nil || h < 0 || h > 23 || m < 0 || m > 59 {
+			slog.Warn("场景时间超出范围，已跳过", "场景", name, "at", raw)
+			continue
+		}
 		specs = append(specs, strconv.Itoa(m)+" "+strconv.Itoa(h)+" * * *")
 	}
 	return specs
@@ -128,8 +139,10 @@ func condition(when map[string]any) (string, any) {
 	return "", nil
 }
 
-func cronLoop() {
+func cronLoop(ctx context.Context) {
 	last := ""
+	ticker := time.NewTicker(cronInterval)
+	defer ticker.Stop()
 	for {
 		now := time.Now()
 		key := now.Format("2006-01-02 15:04")
@@ -138,15 +151,21 @@ func cronLoop() {
 			for _, r := range timeRules {
 				if cronMatches(r.spec, now) {
 					slog.Info("场景触发（时间）", "场景", r.name)
-					go runActions(r.name, r.actions)
+					go runActions(ctx, r.name, r.actions)
 				}
 			}
 		}
-		time.Sleep(cronInterval)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
 	}
 }
 
-func stateLoop() {
+func stateLoop(ctx context.Context) {
+	ticker := time.NewTicker(stateInterval)
+	defer ticker.Stop()
 	for {
 		for _, r := range stateRules {
 			obj := core.Find(r.entity)
@@ -168,10 +187,14 @@ func stateLoop() {
 			}
 			if fired {
 				slog.Info("场景触发（状态）", "场景", r.name)
-				go runActions(r.name, r.actions)
+				go runActions(ctx, r.name, r.actions)
 			}
 		}
-		time.Sleep(stateInterval)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
 	}
 }
 
@@ -183,9 +206,12 @@ func getAttr(obj core.Object, key string) (any, bool) {
 	return v, ok
 }
 
-func runActions(name string, actions []any) {
+func runActions(parent context.Context, name string, actions []any) {
 	for _, a := range actions {
-		if _, err := core.Exec(context.Background(), core.List(a)); err != nil {
+		ctx, cancel := context.WithTimeout(parent, actionTimeout)
+		_, err := core.Exec(ctx, core.List(a))
+		cancel()
+		if err != nil {
 			slog.Error("场景动作失败", "场景", name, "err", err)
 		}
 	}
@@ -245,35 +271,47 @@ func cronMatches(spec string, now time.Time) bool {
 		slog.Error("cron 表达式无效", "spec", spec)
 		return false
 	}
-	return cronField(fields[0], 0, 59, now.Minute()) &&
-		cronField(fields[1], 0, 23, now.Hour()) &&
-		cronField(fields[2], 1, 31, now.Day()) &&
-		cronField(fields[3], 1, 12, int(now.Month())) &&
-		cronField(fields[4], 0, 6, int(now.Weekday()))
+	return cronField(fields[0], 0, 59, now.Minute(), false) &&
+		cronField(fields[1], 0, 23, now.Hour(), false) &&
+		cronField(fields[2], 1, 31, now.Day(), false) &&
+		cronField(fields[3], 1, 12, int(now.Month()), false) &&
+		cronField(fields[4], 0, 6, int(now.Weekday()), true)
 }
 
-func cronField(field string, lo, hi, value int) bool {
+func cronField(field string, lo, hi, value int, weekday bool) bool {
 	for _, part := range strings.Split(field, ",") {
 		base, stepStr, hasStep := strings.Cut(part, "/")
 		step := 1
 		if hasStep {
-			step, _ = strconv.Atoi(stepStr)
-			if step <= 0 {
-				step = 1
+			n, err := strconv.Atoi(stepStr)
+			if err != nil || n <= 0 {
+				continue
 			}
+			step = n
 		}
 		start, end := lo, hi
 		if base != "*" {
 			if a, b, ok := strings.Cut(base, "-"); ok {
-				start, _ = strconv.Atoi(a)
-				end, _ = strconv.Atoi(b)
+				s, err1 := strconv.Atoi(a)
+				e, err2 := strconv.Atoi(b)
+				if err1 != nil || err2 != nil {
+					continue
+				}
+				start, end = s, e
 			} else {
-				start, _ = strconv.Atoi(base)
-				end = start
+				n, err := strconv.Atoi(base)
+				if err != nil {
+					continue
+				}
+				start, end = n, n
 			}
 		}
 		for i := start; i <= end; i += step {
-			if i == value {
+			v := i
+			if weekday && v == 7 {
+				v = 0
+			}
+			if v == value {
 				return true
 			}
 		}
