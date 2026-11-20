@@ -182,7 +182,7 @@ func parseSpec(services []specService) (map[string]any, string) {
 						mods := make(map[string]any)
 						for _, v := range prop.ValueList {
 							if v.Description != "" {
-								mods[v.Description] = v.Value
+								mods[fmt.Sprint(v.Value)] = v.Description
 							}
 						}
 						conf["MODS"] = mods

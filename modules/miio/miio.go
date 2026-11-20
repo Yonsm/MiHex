@@ -351,16 +351,12 @@ func (e *entity) Call(ctx context.Context, method string, args []any) (any, erro
 		core.Emit(e)
 		return nil, nil
 	case "on_mode":
-		id := e.ids["mode"]
+		key = "MODE"
+		id = e.ids["mode"]
 		if s, ok := arg.(string); ok && id.name == "" {
 			arg = commandValue(s)
-			if mapped := core.Map(e.Conf["MODS"])[s]; mapped != nil {
-				if _, numeric := number(mapped); numeric {
-					arg = mapped
-				}
-			}
 		}
-		return nil, d.set(ctx, id, arg)
+		val = arg
 	case "on_tune":
 		switch core.Str(arg) {
 		case "▽", "△":

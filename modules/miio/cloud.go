@@ -184,6 +184,7 @@ func Login(ctx context.Context, cfg *core.Config, in io.Reader, out io.Writer) (
 		return 0, errors.New("配置缺少 miio.user")
 	}
 	c := newCloud(user, core.Str(conf["pass"]), otpPrompt(in, out))
+	defer c.account.Close()
 	if err := c.login(ctx); err != nil {
 		return 0, err
 	}

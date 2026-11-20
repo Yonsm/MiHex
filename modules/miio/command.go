@@ -103,7 +103,7 @@ func (s *miioService) command(ctx context.Context, name string, args []any) (any
 		parts[i] = core.Str(a)
 	}
 	cmd, arg, hasArg := strings.Cut(strings.Join(parts, " "), " ")
-	argv := strings.Split(arg, " ")
+	argv := strings.Fields(arg)
 	get := func(i int) string {
 		if i < len(argv) {
 			return argv[i]
@@ -218,6 +218,9 @@ func (s *miioService) command(ctx context.Context, name string, args []any) (any
 		return t.write(ctx, props)
 	}
 	if ids[0].name == "" && arg != "" {
+		if len(ids) > 1 {
+			return "Invalid command: " + cmd, nil
+		}
 		vals := []any{}
 		if arg != "[]" {
 			for _, a := range argv {

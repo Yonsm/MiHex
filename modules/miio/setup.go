@@ -23,6 +23,7 @@ func setup(sec core.Section) ([]core.Object, error) {
 	svc := &miioService{specs: newSpecs(), dids: map[string]string{}}
 	if user := core.Str(conf["user"]); user != "" {
 		svc.cloud = newCloud(user, core.Str(conf["pass"]), nil)
+		core.OnShutdown(func(context.Context) error { return svc.cloud.account.Close() })
 	}
 	manual := map[string]*device{}
 	var local []core.Object

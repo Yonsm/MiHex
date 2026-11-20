@@ -36,7 +36,7 @@ func (d *localDevice) set(ctx context.Context, id iid, val any) error {
 		if err != nil {
 			return err
 		}
-		if len(vals) != 0 && vals[0] == "ok" {
+		if len(vals) != 0 && (vals[0] == "ok" || equal(vals[0], 0)) {
 			return nil
 		}
 	} else {
