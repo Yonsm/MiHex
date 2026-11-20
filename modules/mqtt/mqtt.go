@@ -58,7 +58,7 @@ func setup(sec core.Section) ([]core.Object, error) {
 	mod := core.NewMod("MQTT")
 	mod.Methods["service"] = true
 	mod.CallFn = func(_ context.Context, _ string, args []any) (any, error) {
-		return handle(args), nil
+		return handle(args)
 	}
 
 	objs := []core.Object{mod}
@@ -108,10 +108,9 @@ func Subscribe(host string, port int, topic string, handler mqttlib.MessageHandl
 }
 
 // service 发布消息，或读取缓存的主题值（支持 topic.field 形式的 JSON 路径）。
-func handle(args []any) any {
+func handle(args []any) (any, error) {
 	if len(args) > 1 {
-		publish(core.Str(args[0]), args[1])
-		return nil
+		return nil, publish(core.Str(args[0]), args[1])
 	}
 	if len(args) == 1 {
 		parts := strings.SplitN(core.Str(args[0]), ".", 2)
@@ -119,32 +118,34 @@ func handle(args []any) any {
 		val, ok := msgs[parts[0]]
 		mu.Unlock()
 		if !ok || val == "" {
-			return nil
+			return nil, nil
 		}
 		if len(parts) == 1 {
-			return val
+			return val, nil
 		}
 		var m map[string]any
 		if json.Unmarshal([]byte(val), &m) != nil {
-			return nil
+			return nil, nil
 		}
-		return m[parts[1]]
+		return m[parts[1]], nil
 	}
-	return nil
+	return nil, nil
 }
 
-func publish(topic string, payload any) {
+func publish(topic string, payload any) error {
 	if client == nil || !client.IsConnected() {
-		return
+		return fmt.Errorf("MQTT 未连接，无法发布到 %s", topic)
 	}
 	t := client.Publish(topic, 0, true, fmt.Sprint(payload))
 	if !t.WaitTimeout(2 * time.Second) {
 		slog.Warn("MQTT 发布超时", "topic", topic)
-		return
+		return fmt.Errorf("MQTT 发布超时: %s", topic)
 	}
-	if t.Error() != nil {
-		slog.Error("MQTT 发布失败", "topic", topic, "err", t.Error())
+	if err := t.Error(); err != nil {
+		slog.Error("MQTT 发布失败", "topic", topic, "err", err)
+		return err
 	}
+	return nil
 }
 
 func store(topic, payload string) {
@@ -199,7 +200,8 @@ func parseStat(conf map[string]any, payload []byte) (any, bool) {
 	if json.Unmarshal(payload, &m) != nil {
 		return nil, false
 	}
-	return m[key], true
+	val, ok := m[key]
+	return val, ok
 }
 
 // Entity 是由 MQTT 消息驱动状态的设备实体。
@@ -222,8 +224,7 @@ func (e *Entity) Call(ctx context.Context, method string, args []any) (any, erro
 			stat, _ := e.Get("STAT")
 			payload = !toBool(stat)
 		}
-		publish(topic, payload)
-		return nil, nil
+		return nil, publish(topic, payload)
 	case "service":
 		topic := e.Str("stat")
 		if len(args) > 0 {
@@ -231,7 +232,7 @@ func (e *Entity) Call(ctx context.Context, method string, args []any) (any, erro
 				topic = turn
 			}
 		}
-		return handle(append([]any{topic}, args...)), nil
+		return handle(append([]any{topic}, args...))
 	}
 	return e.Entity.Call(ctx, method, args)
 }
