@@ -165,7 +165,7 @@ MiIO 协议层依赖 [MisGo](https://github.com/Yonsm/misgo)（`github.com/Yonsm
 ## 安全建议
 
 - `server.token` 鉴权基于 HTTP Basic / URL query 参数，未配置 `cert`/`key` 时以明文 HTTP 传输。设计定位是可信局域网内使用；若需公网访问，请务必配置 `cert`/`key` 启用 HTTPS，或放在已有 VPN/反向代理之后。
-- `mihex.yml`（含账号密码、Token 等敏感信息）与运行时生成的 `.mi.token`（小米云 session 缓存）、`.miot_specs.json`（MIoT spec 本地缓存，不含敏感信息，删除后会自动重新拉取）已在 `.gitignore` 中，注意不要手动提交。
+- 个人敏感配置建议放到 `~/.mihex.yml` 或通过 `-c` 指定；旧版 `mihex.yaml` 与运行时生成的 `.mi.token`（小米云 session 缓存）、`.miot_specs.json`（MIoT spec 本地缓存，不含敏感信息，删除后会自动重新拉取）已在 `.gitignore` 中，仓库自带的 `mihex.yml` 为公开样板，注意不要写入个人账号或 Token 后提交。
 
 ## 致谢
 

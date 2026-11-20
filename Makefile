@@ -10,4 +10,4 @@ generate:
 	go generate ./server
 
 clean:
-	rm -rf mihex server/wwwgz
+	rm -f mihex

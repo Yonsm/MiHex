@@ -38,6 +38,3 @@ venv/
 
 # Go build
 /mihex
-
-# 前端压缩资源（构建产物，由 make 生成）
-server/wwwgz/
