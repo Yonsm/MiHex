@@ -61,7 +61,8 @@ func LoadModules(cfg *Config, serve bool) error {
 		if !serve && (name == "server" || name == "tracker") {
 			continue
 		}
-		if _, ok := cfg.Values[name]; !ok {
+		// tracker 是常驻轮询循环，即使没有配置段也要运行，/states 等调用依赖它。
+		if _, ok := cfg.Values[name]; !ok && name != "tracker" {
 			continue
 		}
 		mod, ok := modules[name]

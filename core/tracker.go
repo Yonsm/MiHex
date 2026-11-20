@@ -27,15 +27,17 @@ func init() {
 
 func trackerSetup(sec Section) ([]Object, error) {
 	m := sec.Map()
-	fastGap = seconds(m["fast"], 60)
-	slowGap = seconds(m["slow"], 3600)
-	if fastGap <= 0 || slowGap <= 0 {
+	fg := seconds(m["fast"], 60)
+	sg := seconds(m["slow"], 3600)
+	if fg <= 0 || sg <= 0 {
 		return nil, fmt.Errorf("fast 和 slow 轮询间隔必须大于零")
 	}
 	trackerMu.Lock()
-	gap = slowGap
+	fastGap, slowGap, gap = fg, sg, sg
 	trackerMu.Unlock()
-	go loop()
+	ctx, cancel := context.WithCancel(context.Background())
+	OnShutdown(func(context.Context) error { cancel(); return nil })
+	go loop(ctx)
 	return nil, nil
 }
 
@@ -44,16 +46,18 @@ func seconds(v any, def int) time.Duration {
 }
 
 // Fast 切换到快速轮询并立刻唤醒一轮。
-func Fast() { setGap(fastGap, "快速") }
+func Fast() { setGap(fastGap, "快速", true) }
 
-// Slow 切回慢速轮询。
-func Slow() { setGap(slowGap, "慢速") }
+// Slow 切回慢速轮询，仅重设等待间隔，不触发额外轮询。
+func Slow() { setGap(slowGap, "慢速", false) }
 
-func setGap(d time.Duration, name string) {
+func setGap(d time.Duration, name string, wakeUp bool) {
 	trackerMu.Lock()
 	gap = d
 	trackerMu.Unlock()
-	Wake()
+	if wakeUp {
+		Wake()
+	}
 	slog.Info("轮询节奏", "模式", name, "间隔", d)
 }
 
@@ -71,10 +75,12 @@ func currentGap() time.Duration {
 	return gap
 }
 
-func loop() {
-	for {
-		Track(context.Background())
+func loop(ctx context.Context) {
+	for ctx.Err() == nil {
+		Track(ctx)
 		select {
+		case <-ctx.Done():
+			return
 		case <-wake:
 		case <-time.After(currentGap()):
 		}
